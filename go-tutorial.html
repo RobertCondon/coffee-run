@@ -1,0 +1,1889 @@
+<title>Coffee Run in Go</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a till docket. Sticky step list on the left, one long receipt of steps on the right. */
+:root {
+  --paper: #FBFAF7;
+  --paper-2: #F1EEE6;
+  --ink: #1A1917;
+  --ink-2: #4A4945;
+  --ink-3: #6E6B63;
+  --rule: #C9C6BE;
+  --red: #B8322A;
+  --red-soft: #F6E3E0;
+  --code-bg: #1E1C1A;
+  --code-fg: #F2EFE8;
+  --ok: #2F6B3A;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1B1A18; --paper-2: #24221F; --ink: #F2EFE8; --ink-2: #CFCAC0; --ink-3: #A39E93;
+    --rule: #45423D; --red: #F08A80; --red-soft: #3A2421; --code-bg: #121110; --code-fg: #EDE9E1; --ok: #8CC79A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1B1A18; --paper-2: #24221F; --ink: #F2EFE8; --ink-2: #CFCAC0; --ink-3: #A39E93;
+  --rule: #45423D; --red: #F08A80; --red-soft: #3A2421; --code-bg: #121110; --code-fg: #EDE9E1; --ok: #8CC79A;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--sans);
+  font-size: 1.0625rem; line-height: 1.65;
+}
+.page {
+  display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 3rem;
+  max-width: 76rem; margin: 0 auto;
+  padding-block: 2.5rem 6rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+@media (max-width: 900px) { .page { grid-template-columns: minmax(0, 1fr); gap: 2rem; } }
+
+/* ---- step list ---- */
+nav.steps { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 1.5rem); align-self: start; font-family: var(--mono); font-size: 0.8125rem; }
+@media (max-width: 900px) { nav.steps { position: static; } }
+nav.steps .label { letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin: 0 0 0.75rem; }
+nav.steps ol { list-style: none; margin: 0; padding: 0; border-top: 2px dashed var(--rule); }
+nav.steps li { border-bottom: 1px dashed var(--rule); }
+nav.steps a { display: flex; gap: 0.6rem; padding: 0.45rem 0; color: var(--ink-2); text-decoration: none; }
+nav.steps a:hover, nav.steps a:focus-visible { color: var(--red); }
+nav.steps .n { color: var(--ink-3); min-width: 1.6rem; font-variant-numeric: tabular-nums; }
+nav.steps li.done a { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 2px; }
+nav.steps .progress { margin-top: 0.9rem; color: var(--ink-3); }
+
+/* ---- content ---- */
+main { min-width: 0; }
+.prose { max-width: 44rem; }
+header.top { border-bottom: 2px dashed var(--rule); padding-bottom: 2rem; margin-bottom: 1rem; }
+.eyebrow { font-family: var(--mono); font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--red); margin: 0 0 0.75rem; }
+h1 { font-family: var(--mono); font-weight: 700; font-size: clamp(2.2rem, 5vw, 3.4rem); line-height: 1.05; margin: 0 0 1rem; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font-family: var(--mono); font-weight: 600; font-size: 1.6rem; line-height: 1.2; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--mono); font-weight: 600; font-size: 1.1rem; margin: 2rem 0 0.5rem; }
+p, ul, ol { margin: 0 0 1rem; }
+li { margin-bottom: 0.3rem; }
+a { color: var(--red); text-underline-offset: 2px; }
+code { font-family: var(--mono); font-size: 0.88em; background: var(--paper-2); padding: 0.08em 0.3em; border-radius: 3px; }
+.lede { font-size: 1.2rem; color: var(--ink-2); }
+.meta { font-family: var(--mono); font-size: 0.8125rem; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; }
+
+section.step { padding-top: 3rem; scroll-margin-top: 1rem; }
+.step-head { display: flex; align-items: baseline; gap: 1rem; border-bottom: 2px dashed var(--rule); padding-bottom: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.step-head .num { font-family: var(--mono); font-weight: 700; color: var(--red); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.step-head h2 { flex: 1 1 16rem; }
+.tick { font-family: var(--mono); font-size: 0.8125rem; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--ink-3); cursor: pointer; user-select: none; }
+.tick input { width: 1.05rem; height: 1.05rem; accent-color: var(--red); cursor: pointer; }
+
+/* ---- code ---- */
+figure.code { margin: 1rem 0 1.25rem; background: var(--code-bg); color: var(--code-fg); border-radius: 4px; overflow: hidden; }
+figure.code figcaption { display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.04em; color: #A39E93; padding: 0.5rem 0.9rem; border-bottom: 1px dashed #45423D; }
+figure.code pre { margin: 0; padding: 0.9rem; overflow-x: auto; font-family: var(--mono); font-size: 0.82rem; line-height: 1.55; tab-size: 4; }
+figure.code pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+figure.code.shell figcaption span::before { content: "$ "; color: #F08A80; }
+button.copy { font-family: var(--mono); font-size: 0.75rem; background: none; color: #EDE9E1; border: 1px solid #5A5650; border-radius: 3px; padding: 0.15rem 0.6rem; cursor: pointer; }
+button.copy:hover, button.copy:focus-visible { border-color: #F08A80; color: #F08A80; outline: none; }
+details.full { margin: 1rem 0; border: 1px dashed var(--rule); border-radius: 4px; padding: 0.6rem 0.9rem; }
+details.full summary { font-family: var(--mono); font-size: 0.875rem; cursor: pointer; color: var(--ink-2); }
+details.full[open] summary { margin-bottom: 0.5rem; }
+
+/* ---- callouts ---- */
+.note { border-left: 3px solid var(--ink); background: var(--paper-2); padding: 0.9rem 1.1rem; margin: 1.25rem 0; border-radius: 0 4px 4px 0; }
+.note > :last-child { margin-bottom: 0; }
+.note .tag { display: block; font-family: var(--mono); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.35rem; color: var(--ink-3); }
+.note.go { border-left-color: var(--red); }
+.note.go .tag { color: var(--red); }
+.note.try { border-left-color: var(--ok); }
+.note.try .tag { color: var(--ok); }
+.note.rails .tag::after { content: " ↔"; }
+
+/* ---- tables ---- */
+.table-wrap { overflow-x: auto; margin: 1rem 0 1.5rem; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th, td { text-align: left; vertical-align: top; padding: 0.55rem 0.75rem 0.55rem 0; border-bottom: 1px dashed var(--rule); }
+th { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; border-bottom: 2px solid var(--ink); }
+td:first-child { font-family: var(--mono); font-size: 0.875rem; white-space: nowrap; }
+
+/* ---- architecture docket ---- */
+.arch { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 1rem; align-items: stretch; margin: 1.5rem 0; font-family: var(--mono); font-size: 0.8125rem; }
+.arch .box { border: 2px solid var(--ink); padding: 0.9rem 1rem; background: var(--paper); min-width: 0; }
+.arch .box h4 { margin: 0 0 0.5rem; font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--red); }
+.arch .box ul { margin: 0; padding-left: 1.1rem; color: var(--ink-2); }
+.arch .wire { display: flex; flex-direction: column; justify-content: center; gap: 0.6rem; color: var(--ink-2); text-align: center; }
+.arch .wire span { white-space: nowrap; }
+.arch .wire b { color: var(--red); font-weight: 600; }
+@media (max-width: 640px) { .arch { grid-template-columns: minmax(0, 1fr); } .arch .wire { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 0.4rem 1rem; } }
+
+.tree { font-family: var(--mono); font-size: 0.82rem; line-height: 1.6; background: var(--paper-2); padding: 1rem; border-radius: 4px; overflow-x: auto; white-space: pre; margin: 1rem 0 1.25rem; }
+.tree i { color: var(--ink-3); font-style: normal; }
+
+footer.end { margin-top: 4rem; border-top: 2px dashed var(--rule); padding-top: 1.25rem; font-family: var(--mono); font-size: 0.8125rem; color: var(--ink-3); text-align: center; letter-spacing: 0.1em; }
+
+:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="page">
+<nav class="steps" aria-label="Steps">
+  <p class="label">The docket</p>
+  <ol id="toc">
+    <li><a href="#why-go"><span class="n">00</span>Is Go worth it?</a></li>
+    <li><a href="#map"><span class="n">··</span>What you're building</a></li>
+    <li><a href="#s1"><span class="n">01</span>Install Go</a></li>
+    <li><a href="#s2"><span class="n">02</span>Go in 15 minutes</a></li>
+    <li><a href="#s3"><span class="n">03</span>Project and hello</a></li>
+    <li><a href="#s4"><span class="n">04</span>Open SQLite</a></li>
+    <li><a href="#s5"><span class="n">05</span>Schema and views</a></li>
+    <li><a href="#s6"><span class="n">06</span>Sign-in</a></li>
+    <li><a href="#s7"><span class="n">07</span>Pull: changes since N</a></li>
+    <li><a href="#s8"><span class="n">08</span>Push: the outbox</a></li>
+    <li><a href="#s9"><span class="n">09</span>Live pings</a></li>
+    <li><a href="#s10"><span class="n">10</span>Tests</a></li>
+    <li><a href="#s11"><span class="n">11</span>The phone app</a></li>
+    <li><a href="#s12"><span class="n">12</span>Ship to clanker</a></li>
+    <li><a href="#s13"><span class="n">13</span>What next</a></li>
+  </ol>
+  <p class="progress" id="progress">0 of 13 steps ticked</p>
+</nav>
+
+<main>
+<header class="top prose">
+  <p class="eyebrow">Tutorial · Go + SQLite + local-first</p>
+  <h1>Coffee Run in Go</h1>
+  <p class="lede">Build the office coffee-order app yourself: a Go server with SQLite, and a phone app that keeps its own SQLite copy and syncs. Each step says why, gives you the code, and ends with something to try.</p>
+  <div class="meta"><span>13 steps</span><span>~2 weekends</span><span>Go 1.26+</span><span>Office time: Pacific/Auckland</span></div>
+</header>
+
+<!-- ============ 00 ============ -->
+<section class="step prose" id="why-go">
+  <div class="step-head"><span class="num">00</span><h2>Is Go worth learning?</h2></div>
+  <p>Yes. Go is a mainstream professional language, especially for backend services, infrastructure and developer tools.</p>
+  <ul>
+    <li><b>The tools you already use are written in it.</b> Docker, Kubernetes, Terraform, Prometheus, Caddy and Hugo are all Go. So are big parts of Google, Uber, Cloudflare, Twitch and Dropbox.</li>
+    <li><b>People use it for work, not just side projects.</b> In the Go team's 2025 developer survey, 82% of respondents said they use Go at work (<a href="https://www.gigazine.net/gsc_news/en/20260123-go-developer-survey-2025" target="_blank" rel="noopener">summary</a>). That's a survey of Go users, so it shows how Go is used, not how popular it is overall.</li>
+    <li><b>Go jobs exist in New Zealand, but the market is smaller.</b> JobsPipe counts <a href="https://jobspipe.dev/technologies/golang/nz" target="_blank" rel="noopener">39 companies hiring in NZ</a> whose job ads point to Go: 7 confirmed and 32 likely, including Xe.com, Level and Propellerhead. My read is that most NZ backend ads ask for C#/.NET, Java, TypeScript or Python, and Go shows up more in platform, infrastructure and fintech teams. Often it's listed as a second language. To check this yourself, search Seek for "golang".</li>
+  </ul>
+  <p>For your CV, Go reads well beside TypeScript: it shows you can work outside the JavaScript world. And this project uses the things Go is known for: a fast HTTP server, concurrency for live updates, and a single binary you can copy to a server.</p>
+</section>
+
+<!-- ============ map ============ -->
+<section class="step prose" id="map">
+  <div class="step-head"><span class="num">··</span><h2>What you're building</h2></div>
+  <p>Every phone keeps a small SQLite database. The app reads and writes that local copy, so it's instant and works offline. A sync loop moves changes between the phone and the server. The server is one Go program that also serves the phone app.</p>
+  <div class="arch" role="img" aria-label="Phone with React, a worker and SQLite, syncing with a Go server that has SQLite">
+    <div class="box"><h4>Phone (PWA)</h4><ul><li>React screens</li><li>Worker: sqlite-wasm in OPFS</li><li>outbox table</li><li>db/views.sql</li></ul></div>
+    <div class="wire"><span><b>→</b> POST /api/upload</span><span>GET /api/sync?since=N <b>←</b></span><span>SSE “changed” <b>←</b></span></div>
+    <div class="box"><h4>Go binary on clanker</h4><ul><li>net/http routes</li><li>SQLite + version counter</li><li>db/views.sql</li><li>embedded web/dist</li></ul></div>
+  </div>
+  <p>Four ideas carry the whole design. Each one gets its own step.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Idea</th><th>What it means here</th></tr></thead>
+    <tbody>
+      <tr><td>Version cursor</td><td>Every server write gets the next number. A phone asks “what changed since 41?”</td></tr>
+      <tr><td>Outbox</td><td>Phone writes land locally first and queue in a table until the server takes them.</td></tr>
+      <tr><td>Live ping</td><td>The server tells phones “something changed” over Server-Sent Events. Phones then pull.</td></tr>
+      <tr><td>Views once</td><td>One <code>views.sql</code> file runs on the server and on every phone.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============ 01 ============ -->
+<section class="step prose" id="s1">
+  <div class="step-head"><span class="num">01</span><h2>Install Go and your editor</h2><label class="tick"><input type="checkbox" data-step="s1" id="tick-s1">done</label></div>
+  <figure class="code shell"><figcaption><span>Terminal</span><button type="button" class="copy">Copy</button></figcaption><pre><code>brew install go
+go version          # go1.26 or newer
+brew install sqlite # the sqlite3 CLI, handy for poking at the database</code></pre></figure>
+  <p>In VS Code, install the official <b>Go</b> extension. When it asks to install tools such as <code>gopls</code>, say yes. It formats on save with <code>gofmt</code>. Every Go codebase uses that one style, so you never argue about formatting.</p>
+  <div class="note try"><span class="tag">Try it</span><p>Run <code>go help</code> and skim the commands. You'll mostly use <code>run</code>, <code>build</code>, <code>test</code>, <code>get</code> and <code>mod tidy</code>.</p></div>
+</section>
+
+<!-- ============ 02 ============ -->
+<section class="step prose" id="s2">
+  <div class="step-head"><span class="num">02</span><h2>Go in 15 minutes</h2><label class="tick"><input type="checkbox" data-step="s2" id="tick-s2">done</label></div>
+  <p>Do the first two sections of <a href="https://go.dev/tour/" target="_blank" rel="noopener">A Tour of Go</a> first. It takes about an hour, runs in the browser, and covers the basics properly. The table below covers what this project uses, compared with Ruby and TypeScript.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Go</th><th>What it is</th><th>Closest thing you know</th></tr></thead>
+    <tbody>
+      <tr><td>module, package</td><td>A module is the project (<code>go.mod</code>). Each folder is a package. A capitalised name is public; a lowercase name is private to its package.</td><td>Gemfile / package.json; <code>public</code> vs <code>private</code></td></tr>
+      <tr><td>struct</td><td>A plain data type. Methods attach to it from outside.</td><td>A TS interface with methods; a PORO</td></tr>
+      <tr><td>if err != nil</td><td>Functions return an error as a value. You check it straight away. No exceptions.</td><td><code>rescue</code>, but explicit at every call</td></tr>
+      <tr><td>defer</td><td>Runs a line when the function returns, e.g. <code>defer tx.Rollback()</code>.</td><td><code>ensure</code> / <code>finally</code></td></tr>
+      <tr><td>*T, &amp;x</td><td>Pointers. Use <code>*string</code> for “a string or NULL”.</td><td><code>string | null</code></td></tr>
+      <tr><td>interface</td><td>Any type with the right methods fits, with no <code>implements</code> needed. <code>http.Handler</code> is just one method.</td><td>Duck typing, but checked by the compiler</td></tr>
+      <tr><td>goroutine, channel</td><td><code>go f()</code> runs f concurrently. Channels pass values between goroutines.</td><td>Threads + a queue, but cheap enough to have thousands</td></tr>
+      <tr><td>context.Context</td><td>Carries “this request was cancelled” down through your calls.</td><td>An AbortSignal</td></tr>
+      <tr><td>struct tags</td><td><code>`json:"person_id"`</code> sets the JSON key for a field.</td><td><code>as_json</code> / serializers</td></tr>
+      <tr><td>//go:embed</td><td>Compiles files (SQL, the built web app) into the binary.</td><td>The asset pipeline, sort of</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note go"><span class="tag">The one habit to build</span><p>Handle every error where it happens: <code>if err != nil { return err }</code>. It looks noisy for a day, then you start to like always knowing where a failure goes. To add context, wrap it: <code>fmt.Errorf("migration %s: %w", name, err)</code>.</p></div>
+</section>
+
+<!-- ============ 03 ============ -->
+<section class="step prose" id="s3">
+  <div class="step-head"><span class="num">03</span><h2>Create the project and say hello</h2><label class="tick"><input type="checkbox" data-step="s3" id="tick-s3">done</label></div>
+  <p>Make the folder and the module. The module path is usually your Git repo's URL. Replace <code>you</code> with your GitHub name everywhere it appears in this tutorial.</p>
+  <figure class="code shell"><figcaption><span>Terminal</span><button type="button" class="copy">Copy</button></figcaption><pre><code>mkdir coffee-run &amp;&amp; cd coffee-run
+git init
+go mod init github.com/you/coffee-run
+mkdir -p cmd/server db/migrations internal/server web</code></pre></figure>
+  <p>This is where everything will end up. It's the standard Go layout. <code>internal/</code> is special: code there can't be imported by other modules.</p>
+<div class="tree">coffee-run/
+├── go.mod                <i># like a Gemfile</i>
+├── cmd/server/main.go    <i># the program: config, open db, start http</i>
+├── db/
+│   ├── db.go             <i># Open + Migrate</i>
+│   ├── migrations/       <i># 0001_init.sql, 0002_menu.sql …</i>
+│   ├── views.sql         <i># shared with the phone</i>
+│   └── client.sql        <i># the phone's tables</i>
+├── internal/server/      <i># handlers, sync, live pings, tests</i>
+└── web/                  <i># the Vite app; web/dist is embedded</i></div>
+  <p>Start with the smallest possible server:</p>
+  <figure class="code"><figcaption><span>cmd/server/main.go (first version)</span><button type="button" class="copy">Copy</button></figcaption><pre><code>package main
+
+import (
+	&quot;fmt&quot;
+	&quot;log&quot;
+	&quot;net/http&quot;
+)
+
+func main() {
+	mux := http.NewServeMux()
+
+	// Method and path in one pattern, like a line in routes.rb.
+	mux.HandleFunc(&quot;GET /api/hello/{name}&quot;, func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, &quot;kia ora, %s\n&quot;, r.PathValue(&quot;name&quot;))
+	})
+
+	log.Println(&quot;listening on :8080&quot;)
+	log.Fatal(http.ListenAndServe(&quot;:8080&quot;, mux))
+}</code></pre></figure>
+  <div class="note try"><span class="tag">Try it</span><p><code>go run ./cmd/server</code>, then in another tab run <code>curl localhost:8080/api/hello/aaron</code>. Then try <code>curl -X POST localhost:8080/api/hello/aaron</code> and notice you get a 405 for free.</p></div>
+  <div class="note rails"><span class="tag">In Rails terms</span><p><code>ServeMux</code> is <code>routes.rb</code>, and the handler function is a controller action. There's no framework here: since Go 1.22 the standard library router understands methods and <code>{params}</code>, which is all this app needs.</p></div>
+</section>
+
+<!-- ============ 04 ============ -->
+<section class="step prose" id="s4">
+  <div class="step-head"><span class="num">04</span><h2>Open SQLite and run migrations</h2><label class="tick"><input type="checkbox" data-step="s4" id="tick-s4">done</label></div>
+  <p>Use <code>modernc.org/sqlite</code>. It's SQLite translated into pure Go, so you don't need a C compiler, and building for Linux from your Mac just works.</p>
+  <figure class="code shell"><figcaption><span>Terminal</span><button type="button" class="copy">Copy</button></figcaption><pre><code>go get modernc.org/sqlite</code></pre></figure>
+  <p>Instead of a migration library, write a 40-line runner. SQLite has a spare integer in every database file, <code>PRAGMA user_version</code>. Store the number of the last migration that ran there. <code>//go:embed</code> puts the SQL files inside the binary.</p>
+  <figure class="code"><figcaption><span>db/db.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>// Package db opens the SQLite database and keeps its schema up to date.
+package db
+
+import (
+	&quot;context&quot;
+	&quot;database/sql&quot;
+	&quot;embed&quot;
+	&quot;fmt&quot;
+	&quot;io/fs&quot;
+
+	_ &quot;modernc.org/sqlite&quot; // registers the &quot;sqlite&quot; driver; pure Go, no cgo
+)
+
+//go:embed migrations/*.sql
+var migrations embed.FS
+
+// Views is db/views.sql. The phone app loads the same file.
+//
+//go:embed views.sql
+var Views string
+
+// Open opens (or creates) the database file at path.
+func Open(path string) (*sql.DB, error) {
+	dsn := &quot;file:&quot; + path +
+		&quot;?_pragma=journal_mode(WAL)&quot; + // readers don&#x27;t block the writer
+		&quot;&amp;_pragma=busy_timeout(5000)&quot; + // wait up to 5s for a lock instead of failing
+		&quot;&amp;_pragma=foreign_keys(ON)&quot; +
+		&quot;&amp;_txlock=immediate&quot; // take the write lock at BEGIN, so no deadlocks
+	conn, err := sql.Open(&quot;sqlite&quot;, dsn)
+	if err != nil {
+		return nil, err
+	}
+	// SQLite allows one writer at a time. With one connection, Go&#x27;s pool
+	// queues our queries for us, and the app is far too small to notice.
+	conn.SetMaxOpenConns(1)
+	return conn, nil
+}
+
+// Migrate runs any migration files newer than PRAGMA user_version, then
+// recreates the views.
+func Migrate(ctx context.Context, conn *sql.DB) error {
+	var current int
+	if err := conn.QueryRowContext(ctx, &quot;PRAGMA user_version&quot;).Scan(&amp;current); err != nil {
+		return err
+	}
+
+	files, err := fs.Glob(migrations, &quot;migrations/*.sql&quot;) // sorted by name
+	if err != nil {
+		return err
+	}
+	for i, name := range files {
+		n := i + 1
+		if n &lt;= current {
+			continue
+		}
+		body, err := migrations.ReadFile(name)
+		if err != nil {
+			return err
+		}
+		if err := runInTx(ctx, conn, string(body), fmt.Sprintf(&quot;PRAGMA user_version = %d&quot;, n)); err != nil {
+			return fmt.Errorf(&quot;migration %s: %w&quot;, name, err)
+		}
+	}
+
+	if _, err := conn.ExecContext(ctx, Views); err != nil {
+		return fmt.Errorf(&quot;views.sql: %w&quot;, err)
+	}
+	return nil
+}
+
+func runInTx(ctx context.Context, conn *sql.DB, statements ...string) error {
+	tx, err := conn.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() // does nothing after a successful Commit
+
+	for _, s := range statements {
+		if _, err := tx.ExecContext(ctx, s); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}</code></pre></figure>
+  <div class="note go"><span class="tag">Go concepts</span><p>The blank import <code>_ "modernc.org/sqlite"</code> runs the package's setup code, which registers the driver with <code>database/sql</code>. <code>database/sql</code> is Go's equivalent of the database half of ActiveRecord: a connection pool plus <code>Query</code>, <code>Exec</code> and transactions. <code>defer tx.Rollback()</code> is the standard pattern. If the function returns early, the transaction rolls back. After <code>Commit</code>, the rollback does nothing.</p></div>
+  <div class="note"><span class="tag">Why these pragmas</span><p>WAL lets reads continue while a write happens. <code>busy_timeout</code> waits instead of failing when the database is locked. <code>_txlock=immediate</code> takes the write lock at <code>BEGIN</code>, which avoids a classic SQLite deadlock. One open connection is plenty for an office and keeps everything simple.</p></div>
+</section>
+
+<!-- ============ 05 ============ -->
+<section class="step prose" id="s5">
+  <div class="step-head"><span class="num">05</span><h2>Schema and the two views</h2><label class="tick"><input type="checkbox" data-step="s5" id="tick-s5">done</label></div>
+  <p>Every table the phone syncs has a <code>version</code> column. <code>sync_state</code> holds one counter. Each server write takes the next number and stamps it on the rows it touched. Deletes set <code>deleted_at</code> instead of removing the row (a tombstone), so phones find out about them.</p>
+  <figure class="code"><figcaption><span>db/migrations/0001_init.sql</span><button type="button" class="copy">Copy</button></figcaption><pre><code>-- Every synced table has a version column. The server stamps each write
+-- with the next number from sync_state, so phones can ask &quot;what changed
+-- since version N?&quot;
+CREATE TABLE sync_state (
+  id      INTEGER PRIMARY KEY CHECK (id = 1),
+  version INTEGER NOT NULL
+);
+INSERT INTO sync_state (id, version) VALUES (1, 0);
+
+CREATE TABLE person (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (strftime(&#x27;%Y-%m-%dT%H:%M:%SZ&#x27;, &#x27;now&#x27;)),
+  version    INTEGER NOT NULL
+);
+
+CREATE TABLE session (
+  token_hash TEXT PRIMARY KEY,
+  person_id  TEXT NOT NULL REFERENCES person(id),
+  created_at TEXT NOT NULL DEFAULT (strftime(&#x27;%Y-%m-%dT%H:%M:%SZ&#x27;, &#x27;now&#x27;))
+);
+
+CREATE TABLE menu_item (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL UNIQUE,
+  version    INTEGER NOT NULL,
+  deleted_at TEXT
+);
+
+CREATE TABLE coffee_order (
+  id           TEXT PRIMARY KEY,          -- day || &#x27;:&#x27; || person_id
+  day          TEXT NOT NULL,             -- office-local date, YYYY-MM-DD
+  person_id    TEXT NOT NULL REFERENCES person(id),
+  menu_item_id TEXT NOT NULL REFERENCES menu_item(id),
+  size         TEXT NOT NULL DEFAULT &#x27;regular&#x27;
+               CHECK (size IN (&#x27;small&#x27;, &#x27;regular&#x27;, &#x27;large&#x27;)),
+  milk         TEXT,
+  extras       TEXT NOT NULL DEFAULT &#x27;[]&#x27;, -- sorted JSON array of strings
+  note         TEXT,
+  status       TEXT NOT NULL DEFAULT &#x27;placed&#x27;
+               CHECK (status IN (&#x27;placed&#x27;, &#x27;rejected&#x27;)),
+  updated_at   TEXT NOT NULL,
+  version      INTEGER NOT NULL,
+  deleted_at   TEXT,
+  UNIQUE (day, person_id)
+);
+
+CREATE INDEX person_version       ON person(version);
+CREATE INDEX menu_item_version    ON menu_item(version);
+CREATE INDEX coffee_order_version ON coffee_order(version);</code></pre></figure>
+  <p>Seed the menu so the autocomplete has something to suggest:</p>
+  <figure class="code"><figcaption><span>db/migrations/0002_menu.sql</span><button type="button" class="copy">Copy</button></figcaption><pre><code>UPDATE sync_state SET version = version + 1;
+
+WITH drinks (id, name) AS (VALUES
+  (&#x27;flat-white&#x27;, &#x27;Flat white&#x27;),
+  (&#x27;long-black&#x27;, &#x27;Long black&#x27;),
+  (&#x27;latte&#x27;,      &#x27;Latte&#x27;),
+  (&#x27;cappuccino&#x27;, &#x27;Cappuccino&#x27;),
+  (&#x27;mocha&#x27;,      &#x27;Mocha&#x27;),
+  (&#x27;matcha&#x27;,     &#x27;Matcha latte&#x27;),
+  (&#x27;chai&#x27;,       &#x27;Chai latte&#x27;),
+  (&#x27;hot-choc&#x27;,   &#x27;Hot chocolate&#x27;)
+)
+INSERT INTO menu_item (id, name, version)
+SELECT id, name, (SELECT version FROM sync_state) FROM drinks;</code></pre></figure>
+  <p>Now the views. These are your two master screens: “who ordered what” and the clerk's docket. Write them once. The phone runs this same file.</p>
+  <figure class="code"><figcaption><span>db/views.sql</span><button type="button" class="copy">Copy</button></figcaption><pre><code>-- The same file runs on the server and in every phone&#x27;s SQLite.
+-- Both screens of the app are plain SELECTs from these two views.
+
+DROP VIEW IF EXISTS v_tally;
+DROP VIEW IF EXISTS v_order_line;
+
+-- &quot;Aaron: large oat flat white + extra shot&quot;
+CREATE VIEW v_order_line AS
+SELECT
+  o.day,
+  o.id,
+  o.person_id,
+  p.name AS person,
+  CASE o.size WHEN &#x27;regular&#x27; THEN &#x27;&#x27; ELSE o.size || &#x27; &#x27; END
+    || COALESCE(o.milk || &#x27; &#x27;, &#x27;&#x27;)
+    || lower(m.name)
+    || COALESCE((SELECT &#x27; + &#x27; || group_concat(e.value, &#x27; + &#x27;)
+                 FROM json_each(o.extras) AS e), &#x27;&#x27;) AS label,
+  o.note
+FROM coffee_order AS o
+JOIN person    AS p ON p.id = o.person_id
+JOIN menu_item AS m ON m.id = o.menu_item_id
+WHERE o.deleted_at IS NULL
+  AND o.status = &#x27;placed&#x27;;
+
+-- &quot;large oat flat white + extra shot × 2&quot; for the clerk
+CREATE VIEW v_tally AS
+SELECT day, label, count(*) AS qty
+FROM v_order_line
+GROUP BY day, label;</code></pre></figure>
+  <div class="note"><span class="tag">SQLite vs Postgres</span><p>SQLite has no stored functions, so the drink label is built in a plain <code>CASE</code> expression. It has no time zones, so “today” is worked out in Go and passed in. Extras are stored as sorted JSON text and read back with <code>json_each</code>, which works the same in the browser's SQLite.</p></div>
+  <div class="note try"><span class="tag">Try it</span><p>Temporarily call <code>db.Open("coffee.db")</code> and <code>db.Migrate</code> from <code>main</code>, run it, then run <code>sqlite3 coffee.db ".tables"</code> and <code>sqlite3 coffee.db "SELECT * FROM menu_item"</code>. Run it again: nothing re-runs, because <code>user_version</code> is now 2.</p></div>
+</section>
+
+<!-- ============ 06 ============ -->
+<section class="step prose" id="s6">
+  <div class="step-head"><span class="num">06</span><h2>The server, and signing in once</h2><label class="tick"><input type="checkbox" data-step="s6" id="tick-s6">done</label></div>
+  <p>Create a <code>Server</code> struct that holds the database, the office time zone and the routes. Its <code>now</code> field is a function, so tests can freeze time.</p>
+  <figure class="code"><figcaption><span>internal/server/server.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>type Server struct {
+	db  *sql.DB
+	hub *Hub
+	loc *time.Location   // the office&#x27;s time zone
+	now func() time.Time // swapped out in tests
+	mux *http.ServeMux
+}
+
+func New(db *sql.DB, loc *time.Location, static fs.FS) *Server {
+	s := &amp;Server{db: db, hub: NewHub(), loc: loc, now: time.Now, mux: http.NewServeMux()}
+
+	s.mux.HandleFunc(&quot;GET /api/session&quot;, s.handleMe)
+	s.mux.HandleFunc(&quot;POST /api/session&quot;, s.handleSession)
+	s.mux.HandleFunc(&quot;GET /api/sync&quot;, s.handleSync)
+	s.mux.HandleFunc(&quot;POST /api/upload&quot;, s.handleUpload)
+	s.mux.HandleFunc(&quot;GET /api/events&quot;, s.handleEvents)
+	s.mux.Handle(&quot;GET /&quot;, http.FileServerFS(static))
+	return s
+}
+
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mux.ServeHTTP(w, r)
+}
+
+// today is the office-local date, e.g. &quot;2026-10-17&quot;. SQLite has no time
+// zones, so the server works it out and passes it in.
+func (s *Server) today() string {
+	return s.now().In(s.loc).Format(time.DateOnly)
+}</code></pre></figure>
+  <p>The most important function in the app. Every write goes through it, takes the next version number, and pings phones after it commits:</p>
+  <figure class="code"><figcaption><span>internal/server/server.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>// write runs fn in a transaction with the next sync version, then pings
+// every phone. SQLite has one writer at a time, so versions are committed
+// in order and a phone&#x27;s cursor can never skip a row.
+func (s *Server) write(ctx context.Context, fn func(tx *sql.Tx, version int64) error) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var version int64
+	err = tx.QueryRowContext(ctx,
+		`UPDATE sync_state SET version = version + 1 RETURNING version`).Scan(&amp;version)
+	if err != nil {
+		return err
+	}
+	if err := fn(tx, version); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	s.hub.Publish(version)
+	return nil
+}</code></pre></figure>
+  <div class="note go"><span class="tag">Why this is safe</span><p>SQLite allows one writer at a time, so versions are committed in order. A phone that has seen version 41 can never miss a row stamped 40. On Postgres you'd need extra care for this; here it comes free.</p></div>
+  <p><b>Identity.</b> Someone types their name once. The server creates a <code>person</code> and a random session token, stores only a hash of the token, and puts the token in a long-lived HttpOnly cookie. After that, the phone remembers them. <code>crypto/rand.Text()</code> gives a random 26-character string.</p>
+  <figure class="code"><figcaption><span>internal/server/server.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>func (s *Server) currentPerson(r *http.Request) (person, error) {
+	c, err := r.Cookie(cookieName)
+	if err != nil {
+		return person{}, errNoSession
+	}
+	var p person
+	err = s.db.QueryRowContext(r.Context(), `
+		SELECT p.id, p.name
+		FROM session AS s JOIN person AS p ON p.id = s.person_id
+		WHERE s.token_hash = ?`, hashToken(c.Value)).Scan(&amp;p.ID, &amp;p.Name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return person{}, errNoSession
+	}
+	return p, err
+}
+
+// We store a hash of the token, so a leaked database can&#x27;t sign anyone in.
+func hashToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+// handleMe tells the app who this device belongs to, or 401 if nobody yet.
+func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
+	p, err := s.currentPerson(r)
+	if err != nil {
+		http.Error(w, &quot;not signed in&quot;, http.StatusUnauthorized)
+		return
+	}
+	writeJSON(w, http.StatusOK, p)
+}</code></pre></figure>
+  <figure class="code"><figcaption><span>internal/server/server.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
+	if p, err := s.currentPerson(r); err == nil {
+		writeJSON(w, http.StatusOK, p) // already signed in on this device
+		return
+	}
+
+	var req struct {
+		Name string `json:&quot;name&quot;`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil {
+		http.Error(w, &quot;send JSON like {\&quot;name\&quot;: \&quot;Aaron\&quot;}&quot;, http.StatusBadRequest)
+		return
+	}
+	name, err := cleanName(req.Name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	p := person{ID: rand.Text(), Name: name}
+	token := rand.Text()
+	err = s.write(r.Context(), func(tx *sql.Tx, v int64) error {
+		if _, err := tx.Exec(`INSERT INTO person (id, name, version) VALUES (?, ?, ?)`, p.ID, p.Name, v); err != nil {
+			return err
+		}
+		_, err := tx.Exec(`INSERT INTO session (token_hash, person_id) VALUES (?, ?)`, hashToken(token), p.ID)
+		return err
+	})
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	http.SetCookie(w, &amp;http.Cookie{
+		Name:     cookieName,
+		Value:    token,
+		Path:     &quot;/&quot;,
+		MaxAge:   400 * 24 * 60 * 60, // the longest browsers allow
+		HttpOnly: true,               // page scripts can&#x27;t read it
+		Secure:   r.Header.Get(&quot;X-Forwarded-Proto&quot;) == &quot;https&quot;,
+		SameSite: http.SameSiteLaxMode,
+	})
+	writeJSON(w, http.StatusCreated, p)
+}</code></pre></figure>
+  <p>Put <code>cleanName</code> (trim, 1–40 characters) in <code>validate.go</code>. You also need two small helpers:</p>
+  <figure class="code"><figcaption><span>internal/server/server.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set(&quot;Content-Type&quot;, &quot;application/json&quot;)
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(v)
+}
+
+func serverError(w http.ResponseWriter, err error) {
+	http.Error(w, &quot;something went wrong on the server&quot;, http.StatusInternalServerError)
+	log.Printf(&quot;error: %v&quot;, err)
+}</code></pre></figure>
+  <p>The real <code>main.go</code> reads config from the environment. The <code>_ "time/tzdata"</code> import bundles time zone data, so the server doesn't need it installed. The <code>web</code> package embeds the built phone app. For now, give it a placeholder <code>web/dist/index.html</code>.</p>
+  <figure class="code"><figcaption><span>web/embed.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>// Package web holds the built phone app (npm run build writes web/dist).
+package web
+
+import &quot;embed&quot;
+
+//go:embed all:dist
+var Dist embed.FS</code></pre></figure>
+  <details class="full"><summary>Show the full cmd/server/main.go</summary><figure class="code"><figcaption><span>cmd/server/main.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>package main
+
+import (
+	&quot;context&quot;
+	&quot;io/fs&quot;
+	&quot;log&quot;
+	&quot;net/http&quot;
+	&quot;os&quot;
+	&quot;time&quot;
+	_ &quot;time/tzdata&quot; // bundle time zone data, so the server needn&#x27;t have it
+
+	&quot;github.com/you/coffee-run/db&quot;
+	&quot;github.com/you/coffee-run/internal/server&quot;
+	&quot;github.com/you/coffee-run/web&quot;
+)
+
+func main() {
+	addr := env(&quot;COFFEE_ADDR&quot;, &quot;:8080&quot;)
+	path := env(&quot;COFFEE_DB&quot;, &quot;coffee.db&quot;)
+	tz := env(&quot;COFFEE_TZ&quot;, &quot;Pacific/Auckland&quot;)
+
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		log.Fatalf(&quot;time zone %q: %v&quot;, tz, err)
+	}
+
+	conn, err := db.Open(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	if err := db.Migrate(context.Background(), conn); err != nil {
+		log.Fatal(err)
+	}
+
+	static, err := fs.Sub(web.Dist, &quot;dist&quot;)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	srv := &amp;http.Server{
+		Addr:              addr,
+		Handler:           server.New(conn, loc, static),
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	log.Printf(&quot;coffee run on %s (db %s, tz %s)&quot;, addr, path, tz)
+	log.Fatal(srv.ListenAndServe())
+}
+
+func env(key, fallback string) string {
+	if v := os.Getenv(key); v != &quot;&quot; {
+		return v
+	}
+	return fallback
+}</code></pre></figure></details>
+  <div class="note try"><span class="tag">Try it</span><p><code>curl -i -c jar -X POST localhost:8080/api/session -d '{"name":"Aaron"}'</code>, and look for the <code>Set-Cookie</code> header. Then <code>curl -b jar localhost:8080/api/session</code> should say who you are. Then run <code>sqlite3 coffee.db "SELECT * FROM session"</code>: you'll see a hash, not the token.</p></div>
+  <div class="note"><span class="tag">Gotcha: iPhones</span><p>A PWA added to the iOS home screen gets its own storage, separate from Safari. People will type their name once in Safari and once more in the installed app. That's expected, and still “as few times as possible”.</p></div>
+</section>
+
+<!-- ============ 07 ============ -->
+<section class="step prose" id="s7">
+  <div class="step-head"><span class="num">07</span><h2>Pull: “what changed since N?”</h2><label class="tick"><input type="checkbox" data-step="s7" id="tick-s7">done</label></div>
+  <p>The phone keeps a <code>cursor</code>, the highest version it has seen. <code>GET /api/sync?since=41</code> returns every row with a higher version, plus the new cursor. All three reads share one transaction, so they see the same snapshot.</p>
+  <figure class="code"><figcaption><span>internal/server/sync.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>type Order struct {
+	ID         string  `json:&quot;id&quot;`
+	Day        string  `json:&quot;day&quot;`
+	PersonID   string  `json:&quot;person_id&quot;`
+	MenuItemID string  `json:&quot;menu_item_id&quot;`
+	Size       string  `json:&quot;size&quot;`
+	Milk       *string `json:&quot;milk&quot;`
+	Extras     string  `json:&quot;extras&quot;` // JSON text, stored as-is on the phone
+	Note       *string `json:&quot;note&quot;`
+	Status     string  `json:&quot;status&quot;`
+	UpdatedAt  string  `json:&quot;updated_at&quot;`
+	Version    int64   `json:&quot;version&quot;`
+	DeletedAt  *string `json:&quot;deleted_at&quot;`
+}
+
+type syncResponse struct {
+	Cursor    int64      `json:&quot;cursor&quot;`
+	People    []Person   `json:&quot;people&quot;`
+	MenuItems []MenuItem `json:&quot;menu_items&quot;`
+	Orders    []Order    `json:&quot;orders&quot;`
+}</code></pre></figure>
+  <figure class="code"><figcaption><span>internal/server/sync.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>func (s *Server) handleSync(w http.ResponseWriter, r *http.Request) {
+	if _, err := s.currentPerson(r); err != nil {
+		http.Error(w, &quot;sign in first&quot;, http.StatusUnauthorized)
+		return
+	}
+	since, _ := strconv.ParseInt(r.URL.Query().Get(&quot;since&quot;), 10, 64) // missing means 0
+	oldest := s.now().In(s.loc).AddDate(0, 0, -(keepDays - 1)).Format(time.DateOnly)
+
+	ctx := r.Context()
+	tx, err := s.db.BeginTx(ctx, nil) // one snapshot for all three tables
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	defer tx.Rollback()
+
+	var resp syncResponse
+	if err := tx.QueryRowContext(ctx, `SELECT version FROM sync_state`).Scan(&amp;resp.Cursor); err != nil {
+		serverError(w, err)
+		return
+	}
+
+	resp.People, err = queryAll(ctx, tx,
+		`SELECT id, name, version FROM person WHERE version &gt; ?`,
+		func(rows *sql.Rows, p *Person) error {
+			return rows.Scan(&amp;p.ID, &amp;p.Name, &amp;p.Version)
+		}, since)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	resp.MenuItems, err = queryAll(ctx, tx,
+		`SELECT id, name, version, deleted_at FROM menu_item WHERE version &gt; ?`,
+		func(rows *sql.Rows, m *MenuItem) error {
+			return rows.Scan(&amp;m.ID, &amp;m.Name, &amp;m.Version, &amp;m.DeletedAt)
+		}, since)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	resp.Orders, err = queryAll(ctx, tx, `
+		SELECT id, day, person_id, menu_item_id, size, milk, extras, note,
+		       status, updated_at, version, deleted_at
+		FROM coffee_order
+		WHERE version &gt; ? AND day &gt;= ?`,
+		func(rows *sql.Rows, o *Order) error {
+			return rows.Scan(&amp;o.ID, &amp;o.Day, &amp;o.PersonID, &amp;o.MenuItemID, &amp;o.Size, &amp;o.Milk,
+				&amp;o.Extras, &amp;o.Note, &amp;o.Status, &amp;o.UpdatedAt, &amp;o.Version, &amp;o.DeletedAt)
+		}, since, oldest)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}</code></pre></figure>
+  <p>A small generic helper keeps the three queries short. Go has had generics since 1.18; you'll mostly use them for helpers like this.</p>
+  <figure class="code"><figcaption><span>internal/server/sync.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>// queryAll runs a query and scans every row into a T. It&#x27;s generic, so
+// one helper serves all three tables.
+func queryAll[T any](ctx context.Context, tx *sql.Tx, query string,
+	scan func(*sql.Rows, *T) error, args ...any) ([]T, error) {
+
+	rows, err := tx.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []T{} // encodes as [] rather than null
+	for rows.Next() {
+		var item T
+		if err := scan(rows, &amp;item); err != nil {
+			return nil, err
+		}
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}</code></pre></figure>
+  <div class="note rails"><span class="tag">In Rails terms</span><p>The pull is <code>Order.where("version &gt; ?", since)</code> rendered as JSON. In Go you scan columns into struct fields by hand. That's more typing, but nothing is hidden. Once you're comfortable, look at <a href="https://sqlc.dev" target="_blank" rel="noopener">sqlc</a>: it writes this code for you from SQL.</p></div>
+</section>
+
+<!-- ============ 08 ============ -->
+<section class="step prose" id="s8">
+  <div class="step-head"><span class="num">08</span><h2>Push: the outbox</h2><label class="tick"><input type="checkbox" data-step="s8" id="tick-s8">done</label></div>
+  <p>The phone sends its queued writes as a list of ops. Each op gets its own result. If one is rejected, for example because the order is for a day that has closed, the response is still a 200 with a reason. The phone drops that op instead of retrying it forever.</p>
+  <figure class="code"><figcaption><span>internal/server/sync.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>// Op is one row from the phone&#x27;s outbox.
+type Op struct {
+	ID    string     `json:&quot;id&quot;`   // the outbox row&#x27;s id, echoed back
+	Type  string     `json:&quot;type&quot;` // &quot;put_order&quot; or &quot;delete_order&quot;
+	Order OrderInput `json:&quot;order&quot;`
+}
+
+type OrderInput struct {
+	Day        string   `json:&quot;day&quot;`
+	MenuItemID string   `json:&quot;menu_item_id&quot;`
+	Size       string   `json:&quot;size&quot;`
+	Milk       *string  `json:&quot;milk&quot;`
+	Extras     []string `json:&quot;extras&quot;`
+	Note       *string  `json:&quot;note&quot;`
+}
+
+type OpResult struct {
+	ID    string `json:&quot;id&quot;`
+	OK    bool   `json:&quot;ok&quot;`
+	Error string `json:&quot;error,omitempty&quot;` // shown to the person on their phone
+}</code></pre></figure>
+  <figure class="code"><figcaption><span>internal/server/sync.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>// A rejected op still gets a 200. The phone drops it from the outbox and
+// shows the reason, instead of retrying it forever.
+func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
+	me, err := s.currentPerson(r)
+	if err != nil {
+		http.Error(w, &quot;sign in first&quot;, http.StatusUnauthorized)
+		return
+	}
+	var req struct {
+		Ops []Op `json:&quot;ops&quot;`
+	}
+	if err := decodeJSON(r, &amp;req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	today := s.today()
+	now := s.now().UTC().Format(time.RFC3339)
+	results := make([]OpResult, 0, len(req.Ops))
+
+	err = s.write(r.Context(), func(tx *sql.Tx, v int64) error {
+		for _, op := range req.Ops {
+			msg, err := s.apply(r.Context(), tx, me, op, today, now, v)
+			if err != nil {
+				return err // a real failure: roll back the whole batch
+			}
+			results = append(results, OpResult{ID: op.ID, OK: msg == &quot;&quot;, Error: msg})
+		}
+		return nil
+	})
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{&quot;results&quot;: results})
+}</code></pre></figure>
+  <p>The order ID is <code>day:person_id</code>, so each person has one order per day. The phone can work out the ID offline, and sending the same op twice changes nothing. The server never trusts the person ID from the phone. It uses the session's.</p>
+  <figure class="code"><figcaption><span>internal/server/sync.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>// apply returns a message for the person if the op is rejected, or an
+// error if something is actually broken.
+func (s *Server) apply(ctx context.Context, tx *sql.Tx, me person, op Op,
+	today, now string, v int64) (string, error) {
+
+	in := op.Order
+	if in.Day != today {
+		return fmt.Sprintf(&quot;orders for %s have closed&quot;, in.Day), nil
+	}
+	id := OrderID(in.Day, me.ID) // you can only touch your own order
+
+	switch op.Type {
+	case &quot;delete_order&quot;:
+		_, err := tx.ExecContext(ctx, `
+			UPDATE coffee_order SET deleted_at = ?, updated_at = ?, version = ?
+			WHERE id = ?`, now, now, v, id)
+		return &quot;&quot;, err
+
+	case &quot;put_order&quot;:
+		clean, msg := validateOrder(in)
+		if msg != &quot;&quot; {
+			return msg, nil
+		}
+		var exists bool
+		err := tx.QueryRowContext(ctx,
+			`SELECT EXISTS (SELECT 1 FROM menu_item WHERE id = ? AND deleted_at IS NULL)`,
+			clean.MenuItemID).Scan(&amp;exists)
+		if err != nil {
+			return &quot;&quot;, err
+		}
+		if !exists {
+			return &quot;that drink is no longer on the menu&quot;, nil
+		}
+		// Upsert. Replaying the same op gives the same row, so retries are safe.
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO coffee_order
+			  (id, day, person_id, menu_item_id, size, milk, extras, note, updated_at, version)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT (id) DO UPDATE SET
+			  menu_item_id = excluded.menu_item_id,
+			  size         = excluded.size,
+			  milk         = excluded.milk,
+			  extras       = excluded.extras,
+			  note         = excluded.note,
+			  status       = &#x27;placed&#x27;,
+			  updated_at   = excluded.updated_at,
+			  version      = excluded.version,
+			  deleted_at   = NULL`,
+			id, in.Day, me.ID, clean.MenuItemID, clean.Size, clean.Milk,
+			clean.ExtrasJSON, clean.Note, now, v)
+		return &quot;&quot;, err
+
+	default:
+		return fmt.Sprintf(&quot;unknown op type %q&quot;, op.Type), nil
+	}
+}
+
+// OrderID is the same on the phone and the server: one order per person
+// per day, so a phone can create the row offline and the server agrees.
+func OrderID(day, personID string) string {
+	return day + &quot;:&quot; + personID
+}</code></pre></figure>
+  <p>Validation lives in its own file. Sorting the extras means “vanilla + shot” and “shot + vanilla” land on the same docket line.</p>
+  <figure class="code"><figcaption><span>internal/server/validate.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>// validateOrder returns a message for the person, or &quot;&quot; if the order is fine.
+func validateOrder(in OrderInput) (cleanOrder, string) {
+	out := cleanOrder{MenuItemID: in.MenuItemID, Size: in.Size, Milk: trimOrNil(in.Milk), Note: trimOrNil(in.Note)}
+
+	if out.MenuItemID == &quot;&quot; {
+		return out, &quot;pick a drink&quot;
+	}
+	if out.Size == &quot;&quot; {
+		out.Size = &quot;regular&quot;
+	}
+	if !slices.Contains(sizes, out.Size) {
+		return out, fmt.Sprintf(&quot;size must be one of %s&quot;, strings.Join(sizes, &quot;, &quot;))
+	}
+	if out.Note != nil &amp;&amp; utf8.RuneCountInString(*out.Note) &gt; 80 {
+		return out, &quot;keep the note under 80 characters&quot;
+	}
+
+	// Sorted and de-duplicated, so &quot;shot + vanilla&quot; and &quot;vanilla + shot&quot;
+	// give the same label and tally on the same docket line.
+	extras := []string{}
+	for _, e := range in.Extras {
+		if e = strings.ToLower(strings.TrimSpace(e)); e != &quot;&quot; {
+			extras = append(extras, e)
+		}
+	}
+	slices.Sort(extras)
+	extras = slices.Compact(extras)
+	if len(extras) &gt; 5 {
+		return out, &quot;that&#x27;s a lot of extras; five at most&quot;
+	}
+	b, _ := json.Marshal(extras)
+	out.ExtrasJSON = string(b)
+	return out, &quot;&quot;
+}</code></pre></figure>
+  <div class="note try"><span class="tag">Try it</span><p>Order something and read it back:</p>
+  <figure class="code shell"><figcaption><span>Terminal</span><button type="button" class="copy">Copy</button></figcaption><pre><code>TODAY=$(TZ=Pacific/Auckland date +%F)
+curl -b jar -X POST localhost:8080/api/upload -d "{\"ops\":[{\"id\":\"1\",\"type\":\"put_order\",\"order\":{\"day\":\"$TODAY\",\"menu_item_id\":\"flat-white\",\"size\":\"large\",\"milk\":\"oat\",\"extras\":[\"extra shot\"]}}]}"
+curl -b jar "localhost:8080/api/sync?since=0"
+sqlite3 coffee.db "SELECT * FROM v_tally"   # large oat flat white + extra shot|1</code></pre></figure>
+  <p>Then send an order for yesterday's date and read the reason in the response.</p></div>
+</section>
+
+<!-- ============ 09 ============ -->
+<section class="step prose" id="s9">
+  <div class="step-head"><span class="num">09</span><h2>Live pings with goroutines</h2><label class="tick"><input type="checkbox" data-step="s9" id="tick-s9">done</label></div>
+  <p>When anything is written, each open phone should hear about it in under a second. Use <b>Server-Sent Events</b>: one long HTTP response the server writes lines into. They're simpler than WebSockets and the browser reconnects by itself. The ping carries no data. It just means “pull now”.</p>
+  <p>The hub is a set of channels behind a mutex:</p>
+  <figure class="code"><figcaption><span>internal/server/hub.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>package server
+
+import &quot;sync&quot;
+
+// Hub fans out &quot;something changed&quot; pings to every open /api/events stream.
+type Hub struct {
+	mu   sync.Mutex
+	subs map[chan int64]struct{}
+}
+
+func NewHub() *Hub {
+	return &amp;Hub{subs: make(map[chan int64]struct{})}
+}
+
+func (h *Hub) Subscribe() chan int64 {
+	ch := make(chan int64, 1)
+	h.mu.Lock()
+	h.subs[ch] = struct{}{}
+	h.mu.Unlock()
+	return ch
+}
+
+func (h *Hub) Unsubscribe(ch chan int64) {
+	h.mu.Lock()
+	delete(h.subs, ch)
+	h.mu.Unlock()
+}
+
+// Publish never blocks. If a phone hasn&#x27;t read its last ping yet, it
+// skips this one: it will pull everything since its cursor anyway.
+func (h *Hub) Publish(version int64) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for ch := range h.subs {
+		select {
+		case ch &lt;- version:
+		default:
+		}
+	}
+}</code></pre></figure>
+  <p>Each phone's <code>/api/events</code> request runs in its own goroutine. Go's server does that for you. The handler waits on three things with <code>select</code>: the phone leaving, a ping, or a 25-second keep-alive tick.</p>
+  <figure class="code"><figcaption><span>internal/server/sync.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
+	if _, err := s.currentPerson(r); err != nil {
+		http.Error(w, &quot;sign in first&quot;, http.StatusUnauthorized)
+		return
+	}
+	w.Header().Set(&quot;Content-Type&quot;, &quot;text/event-stream&quot;)
+	w.Header().Set(&quot;Cache-Control&quot;, &quot;no-cache&quot;)
+
+	rc := http.NewResponseController(w)
+	rc.SetWriteDeadline(time.Time{}) // this response stays open
+
+	ch := s.hub.Subscribe()
+	defer s.hub.Unsubscribe(ch)
+
+	fmt.Fprint(w, &quot;: connected\n\n&quot;)
+	rc.Flush()
+
+	keepAlive := time.NewTicker(25 * time.Second) // stops proxies closing an idle stream
+	defer keepAlive.Stop()
+
+	for {
+		select {
+		case &lt;-r.Context().Done(): // the phone went away
+			return
+		case v := &lt;-ch:
+			fmt.Fprintf(w, &quot;event: changed\ndata: %d\n\n&quot;, v)
+			rc.Flush()
+		case &lt;-keepAlive.C:
+			fmt.Fprint(w, &quot;: ping\n\n&quot;)
+			rc.Flush()
+		}
+	}
+}</code></pre></figure>
+  <div class="note go"><span class="tag">This is the bit Go is good at</span><p>Each connected phone costs one goroutine, a few kilobytes. <code>select</code> waits on several channels at once, and <code>r.Context().Done()</code> closes when the phone disconnects, so cleanup is a <code>defer</code>. In Rails, you'd use Action Cable for this.</p></div>
+  <div class="note try"><span class="tag">Try it</span><p>In one terminal run <code>curl -N -b jar localhost:8080/api/events</code>. In another, run the upload from step 8. You'll see <code>event: changed</code> arrive immediately.</p></div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section class="step prose" id="s10">
+  <div class="step-head"><span class="num">10</span><h2>Tests</h2><label class="tick"><input type="checkbox" data-step="s10" id="tick-s10">done</label></div>
+  <p>Testing is built in: files ending <code>_test.go</code>, functions starting <code>Test</code>, run with <code>go test ./...</code>. The Go style is the <b>table-driven test</b>, a list of cases in one loop:</p>
+  <figure class="code"><figcaption><span>internal/server/server_test.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>func TestValidateOrder(t *testing.T) {
+	tests := []struct {
+		name       string
+		in         OrderInput
+		wantMsg    string
+		wantExtras string
+	}{
+		{&quot;defaults to regular&quot;, OrderInput{MenuItemID: &quot;latte&quot;}, &quot;&quot;, &quot;[]&quot;},
+		{&quot;sorts and dedupes extras&quot;, OrderInput{MenuItemID: &quot;latte&quot;, Extras: []string{&quot;Vanilla&quot;, &quot;extra shot&quot;, &quot;vanilla &quot;}}, &quot;&quot;, `[&quot;extra shot&quot;,&quot;vanilla&quot;]`},
+		{&quot;needs a drink&quot;, OrderInput{}, &quot;pick a drink&quot;, &quot;&quot;},
+		{&quot;rejects odd sizes&quot;, OrderInput{MenuItemID: &quot;latte&quot;, Size: &quot;venti&quot;}, &quot;size must be one of small, regular, large&quot;, &quot;&quot;},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, msg := validateOrder(tt.in)
+			if msg != tt.wantMsg {
+				t.Fatalf(&quot;message = %q, want %q&quot;, msg, tt.wantMsg)
+			}
+			if msg == &quot;&quot; &amp;&amp; got.ExtrasJSON != tt.wantExtras {
+				t.Errorf(&quot;extras = %s, want %s&quot;, got.ExtrasJSON, tt.wantExtras)
+			}
+		})
+	}
+}</code></pre></figure>
+  <p><code>httptest</code> lets you call your handlers without opening a port. This test signs in two people, orders, checks a closed day is rejected, pulls, and reads the tally view:</p>
+  <figure class="code"><figcaption><span>internal/server/server_test.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>func TestOrderSyncsAndTallies(t *testing.T) {
+	s := newTestServer(t)
+	aaron := signIn(t, s, &quot;Aaron&quot;)
+	alex := signIn(t, s, &quot;Alex&quot;)
+
+	do(t, s, &quot;POST&quot;, &quot;/api/upload&quot;, order(&quot;2026-10-17&quot;, &quot;matcha&quot;), aaron)
+	do(t, s, &quot;POST&quot;, &quot;/api/upload&quot;, order(&quot;2026-10-17&quot;, &quot;matcha&quot;), alex)
+
+	// A day that has closed is rejected with a reason, not an error code.
+	rec := do(t, s, &quot;POST&quot;, &quot;/api/upload&quot;, order(&quot;2026-10-16&quot;, &quot;latte&quot;), alex)
+	if rec.Code != http.StatusOK || !bytes.Contains(rec.Body.Bytes(), []byte(&quot;have closed&quot;)) {
+		t.Fatalf(&quot;closed day: %d %s&quot;, rec.Code, rec.Body)
+	}
+
+	rec = do(t, s, &quot;GET&quot;, &quot;/api/sync?since=0&quot;, nil, aaron)
+	var got syncResponse
+	json.NewDecoder(rec.Body).Decode(&amp;got)
+	if len(got.Orders) != 2 || len(got.People) != 2 || len(got.MenuItems) != 8 {
+		t.Fatalf(&quot;sync: %d orders, %d people, %d menu items&quot;, len(got.Orders), len(got.People), len(got.MenuItems))
+	}
+
+	// Nothing new since the cursor.
+	rec = do(t, s, &quot;GET&quot;, &quot;/api/sync?since=&quot;+itoa(got.Cursor), nil, aaron)
+	var again syncResponse
+	json.NewDecoder(rec.Body).Decode(&amp;again)
+	if len(again.Orders) != 0 {
+		t.Fatalf(&quot;expected no changes, got %d orders&quot;, len(again.Orders))
+	}
+
+	var label string
+	var qty int
+	err := s.db.QueryRow(`SELECT label, qty FROM v_tally WHERE day = ?`, &quot;2026-10-17&quot;).Scan(&amp;label, &amp;qty)
+	if err != nil || label != &quot;matcha latte&quot; || qty != 2 {
+		t.Fatalf(&quot;tally = %q × %d (%v), want matcha latte × 2&quot;, label, qty, err)
+	}
+}</code></pre></figure>
+  <details class="full"><summary>Show the whole test file, with its helpers</summary><figure class="code"><figcaption><span>internal/server/server_test.go</span><button type="button" class="copy">Copy</button></figcaption><pre><code>package server
+
+import (
+	&quot;bytes&quot;
+	&quot;context&quot;
+	&quot;encoding/json&quot;
+	&quot;net/http&quot;
+	&quot;net/http/httptest&quot;
+	&quot;path/filepath&quot;
+	&quot;testing&quot;
+	&quot;testing/fstest&quot;
+	&quot;time&quot;
+
+	&quot;github.com/you/coffee-run/db&quot;
+)
+
+func TestValidateOrder(t *testing.T) {
+	tests := []struct {
+		name       string
+		in         OrderInput
+		wantMsg    string
+		wantExtras string
+	}{
+		{&quot;defaults to regular&quot;, OrderInput{MenuItemID: &quot;latte&quot;}, &quot;&quot;, &quot;[]&quot;},
+		{&quot;sorts and dedupes extras&quot;, OrderInput{MenuItemID: &quot;latte&quot;, Extras: []string{&quot;Vanilla&quot;, &quot;extra shot&quot;, &quot;vanilla &quot;}}, &quot;&quot;, `[&quot;extra shot&quot;,&quot;vanilla&quot;]`},
+		{&quot;needs a drink&quot;, OrderInput{}, &quot;pick a drink&quot;, &quot;&quot;},
+		{&quot;rejects odd sizes&quot;, OrderInput{MenuItemID: &quot;latte&quot;, Size: &quot;venti&quot;}, &quot;size must be one of small, regular, large&quot;, &quot;&quot;},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, msg := validateOrder(tt.in)
+			if msg != tt.wantMsg {
+				t.Fatalf(&quot;message = %q, want %q&quot;, msg, tt.wantMsg)
+			}
+			if msg == &quot;&quot; &amp;&amp; got.ExtrasJSON != tt.wantExtras {
+				t.Errorf(&quot;extras = %s, want %s&quot;, got.ExtrasJSON, tt.wantExtras)
+			}
+		})
+	}
+}
+
+func newTestServer(t *testing.T) *Server {
+	t.Helper()
+	conn, err := db.Open(filepath.Join(t.TempDir(), &quot;test.db&quot;))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { conn.Close() })
+	if err := db.Migrate(context.Background(), conn); err != nil {
+		t.Fatal(err)
+	}
+	loc, _ := time.LoadLocation(&quot;Pacific/Auckland&quot;)
+	s := New(conn, loc, fstest.MapFS{})
+	s.now = func() time.Time { return time.Date(2026, 10, 17, 9, 30, 0, 0, loc) }
+	return s
+}
+
+// do sends a JSON request, carrying cookies like a browser would.
+func do(t *testing.T, s *Server, method, path string, body any, cookies []*http.Cookie) *httptest.ResponseRecorder {
+	t.Helper()
+	var buf bytes.Buffer
+	if body != nil {
+		json.NewEncoder(&amp;buf).Encode(body)
+	}
+	req := httptest.NewRequest(method, path, &amp;buf)
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+	rec := httptest.NewRecorder()
+	s.ServeHTTP(rec, req)
+	return rec
+}
+
+func signIn(t *testing.T, s *Server, name string) []*http.Cookie {
+	t.Helper()
+	rec := do(t, s, &quot;POST&quot;, &quot;/api/session&quot;, map[string]string{&quot;name&quot;: name}, nil)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf(&quot;sign in: %d %s&quot;, rec.Code, rec.Body)
+	}
+	return rec.Result().Cookies()
+}
+
+func order(day, drink string, extras ...string) map[string]any {
+	return map[string]any{&quot;ops&quot;: []map[string]any{{
+		&quot;id&quot;: &quot;op-1&quot;, &quot;type&quot;: &quot;put_order&quot;,
+		&quot;order&quot;: map[string]any{&quot;day&quot;: day, &quot;menu_item_id&quot;: drink, &quot;extras&quot;: extras},
+	}}}
+}
+
+func TestOrderSyncsAndTallies(t *testing.T) {
+	s := newTestServer(t)
+	aaron := signIn(t, s, &quot;Aaron&quot;)
+	alex := signIn(t, s, &quot;Alex&quot;)
+
+	do(t, s, &quot;POST&quot;, &quot;/api/upload&quot;, order(&quot;2026-10-17&quot;, &quot;matcha&quot;), aaron)
+	do(t, s, &quot;POST&quot;, &quot;/api/upload&quot;, order(&quot;2026-10-17&quot;, &quot;matcha&quot;), alex)
+
+	// A day that has closed is rejected with a reason, not an error code.
+	rec := do(t, s, &quot;POST&quot;, &quot;/api/upload&quot;, order(&quot;2026-10-16&quot;, &quot;latte&quot;), alex)
+	if rec.Code != http.StatusOK || !bytes.Contains(rec.Body.Bytes(), []byte(&quot;have closed&quot;)) {
+		t.Fatalf(&quot;closed day: %d %s&quot;, rec.Code, rec.Body)
+	}
+
+	rec = do(t, s, &quot;GET&quot;, &quot;/api/sync?since=0&quot;, nil, aaron)
+	var got syncResponse
+	json.NewDecoder(rec.Body).Decode(&amp;got)
+	if len(got.Orders) != 2 || len(got.People) != 2 || len(got.MenuItems) != 8 {
+		t.Fatalf(&quot;sync: %d orders, %d people, %d menu items&quot;, len(got.Orders), len(got.People), len(got.MenuItems))
+	}
+
+	// Nothing new since the cursor.
+	rec = do(t, s, &quot;GET&quot;, &quot;/api/sync?since=&quot;+itoa(got.Cursor), nil, aaron)
+	var again syncResponse
+	json.NewDecoder(rec.Body).Decode(&amp;again)
+	if len(again.Orders) != 0 {
+		t.Fatalf(&quot;expected no changes, got %d orders&quot;, len(again.Orders))
+	}
+
+	var label string
+	var qty int
+	err := s.db.QueryRow(`SELECT label, qty FROM v_tally WHERE day = ?`, &quot;2026-10-17&quot;).Scan(&amp;label, &amp;qty)
+	if err != nil || label != &quot;matcha latte&quot; || qty != 2 {
+		t.Fatalf(&quot;tally = %q × %d (%v), want matcha latte × 2&quot;, label, qty, err)
+	}
+}
+
+func itoa(n int64) string { b, _ := json.Marshal(n); return string(b) }</code></pre></figure></details>
+  <div class="note try"><span class="tag">Try it</span><p><code>go test ./... -v</code>. Then break something on purpose, for example remove <code>slices.Sort(extras)</code>, and watch the right case fail. Add <code>-race</code> to catch goroutine bugs.</p></div>
+</section>
+
+<!-- ============ 11 ============ -->
+<section class="step prose" id="s11">
+  <div class="step-head"><span class="num">11</span><h2>The phone app</h2><label class="tick"><input type="checkbox" data-step="s11" id="tick-s11">done</label></div>
+  <p>The phone app is a React app made with Vite. Its database is <b>sqlite-wasm</b> (SQLite's official browser build) stored in OPFS, the browser's private file system. OPFS with the <code>opfs-sahpool</code> option has to run in a <b>Web Worker</b>, so the worker owns the database and the sync loop. The page sends it messages. Think of the worker as a tiny local server.</p>
+  <figure class="code shell"><figcaption><span>Terminal (inside coffee-run/)</span><button type="button" class="copy">Copy</button></figcaption><pre><code>npm create vite@latest web -- --template react-ts
+cd web
+npm install @sqlite.org/sqlite-wasm</code></pre></figure>
+  <p><code>web/</code> already holds <code>embed.go</code> and the placeholder <code>dist</code>, so Vite will say the folder isn't empty. Choose “Ignore files and continue”. Then set up <code>vite.config.ts</code>:</p>
+  <figure class="code"><figcaption><span>web/vite.config.ts</span><button type="button" class="copy">Copy</button></figcaption><pre><code>import { defineConfig } from &quot;vite&quot;;
+import react from &quot;@vitejs/plugin-react&quot;;
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    fs: { allow: [&quot;..&quot;] }, // let the app import ../db/*.sql
+    proxy: { &quot;/api&quot;: &quot;http://localhost:8080&quot; }, // the Go server, during dev
+  },
+  build: { target: &quot;es2022&quot; }, // top-level await in the worker
+  worker: { format: &quot;es&quot; },
+  optimizeDeps: { exclude: [&quot;@sqlite.org/sqlite-wasm&quot;] },
+});</code></pre></figure>
+  <p>The phone's tables mirror the server's, plus an <code>outbox</code> and a <code>meta</code> table for the cursor and who you are:</p>
+  <figure class="code"><figcaption><span>db/client.sql</span><button type="button" class="copy">Copy</button></figcaption><pre><code>-- The phone&#x27;s copy of the synced tables, plus two tables of its own.
+-- Same columns as the server (keep them in step), minus constraints:
+-- the server is the one that checks.
+CREATE TABLE IF NOT EXISTS person (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, version INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS menu_item (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, version INTEGER NOT NULL, deleted_at TEXT
+);
+CREATE TABLE IF NOT EXISTS coffee_order (
+  id TEXT PRIMARY KEY, day TEXT NOT NULL, person_id TEXT NOT NULL,
+  menu_item_id TEXT NOT NULL, size TEXT NOT NULL, milk TEXT,
+  extras TEXT NOT NULL DEFAULT &#x27;[]&#x27;, note TEXT,
+  status TEXT NOT NULL DEFAULT &#x27;placed&#x27;, updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL,          -- 0 means &quot;not confirmed by the server yet&quot;
+  deleted_at TEXT
+);
+
+-- Writes waiting to be uploaded, oldest first.
+CREATE TABLE IF NOT EXISTS outbox (
+  id       INTEGER PRIMARY KEY AUTOINCREMENT,
+  type     TEXT NOT NULL,            -- put_order | delete_order
+  order_id TEXT NOT NULL,
+  payload  TEXT NOT NULL             -- JSON body for the server
+);
+
+-- Small key/value settings: cursor, person_id, person_name.
+CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value);</code></pre></figure>
+  <h3>sync.ts: the phone's half of the protocol</h3>
+  <p>Keep this file free of browser APIs, so you can test it in Node against an in-memory database. Placing an order writes the local row and the outbox entry in one transaction, tells the screens to refresh, then tries to send:</p>
+  <figure class="code"><figcaption><span>web/src/sync.ts</span><button type="button" class="copy">Copy</button></figcaption><pre><code>  // Write locally first, queue for the server, then try to send.
+  function placeOrder(input: OrderInput) {
+    const me = getMeta(&quot;person_id&quot;);
+    if (!me) throw new Error(&quot;sign in first&quot;);
+    const day = opts.today();
+    const id = `${day}:${me}`; // same rule as OrderID() in Go
+    const extras = [
+      ...new Set((input.extras ?? []).map((e) =&gt; e.trim().toLowerCase()).filter(Boolean)),
+    ].sort();
+    const order = {
+      day,
+      menu_item_id: input.menu_item_id,
+      size: input.size ?? &quot;regular&quot;,
+      milk: input.milk ?? null,
+      extras,
+      note: input.note ?? null,
+    };
+
+    db.transaction(() =&gt; {
+      db.run(
+        `INSERT INTO coffee_order
+           (id, day, person_id, menu_item_id, size, milk, extras, note, status, updated_at, version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, &#x27;placed&#x27;, ?, 0)
+         ON CONFLICT (id) DO UPDATE SET
+           menu_item_id = excluded.menu_item_id, size = excluded.size,
+           milk = excluded.milk, extras = excluded.extras, note = excluded.note,
+           status = &#x27;placed&#x27;, updated_at = excluded.updated_at,
+           version = 0, deleted_at = NULL`,
+        [id, day, me, order.menu_item_id, order.size, order.milk,
+         JSON.stringify(extras), order.note, new Date().toISOString()],
+      );
+      db.run(`INSERT INTO outbox (type, order_id, payload) VALUES (&#x27;put_order&#x27;, ?, ?)`,
+        [id, JSON.stringify(order)]);
+    });
+    opts.onChange();
+    void push(); // fine if we&#x27;re offline: the outbox keeps it
+  }</code></pre></figure>
+  <p>The rest of the file is <code>push()</code> (send the outbox, drop what the server answered, re-pull from 0 after a rejection) and <code>pull()</code> (apply rows since the cursor, skipping orders with unsent local edits).</p>
+  <details class="full"><summary>Show the full web/src/sync.ts</summary><figure class="code"><figcaption><span>web/src/sync.ts</span><button type="button" class="copy">Copy</button></figcaption><pre><code>// The phone&#x27;s half of the sync protocol. It doesn&#x27;t know about workers or
+// OPFS, so you can test it in Node against an in-memory database.
+
+export type Row = Record&lt;string, any&gt;;
+
+export interface Db {
+  all(sql: string, bind?: unknown[]): Row[];
+  run(sql: string, bind?: unknown[]): void;
+  transaction(fn: () =&gt; void): void;
+}
+
+export interface OrderInput {
+  menu_item_id: string;
+  size?: string;
+  milk?: string | null;
+  extras?: string[];
+  note?: string | null;
+}
+
+interface Options {
+  fetch: (path: string, init?: RequestInit) =&gt; Promise&lt;Response&gt;;
+  today: () =&gt; string; // office-local YYYY-MM-DD
+  onChange: () =&gt; void; // local data changed: re-run your queries
+  onRejected: (message: string) =&gt; void;
+}
+
+export function createSync(db: Db, opts: Options) {
+  const getMeta = (key: string) =&gt;
+    db.all(`SELECT value FROM meta WHERE key = ?`, [key])[0]?.value;
+  const setMeta = (key: string, value: unknown) =&gt;
+    db.run(
+      `INSERT INTO meta (key, value) VALUES (?, ?)
+       ON CONFLICT (key) DO UPDATE SET value = excluded.value`,
+      [key, value],
+    );
+
+  // Remember who this phone belongs to. The person row goes in now, so
+  // our own orders show up even before the first sync.
+  function setMe(person: { id: string; name: string }) {
+    db.transaction(() =&gt; {
+      setMeta(&quot;person_id&quot;, person.id);
+      db.run(`INSERT OR IGNORE INTO person (id, name, version) VALUES (?, ?, 0)`,
+        [person.id, person.name]);
+    });
+  }
+
+  // Write locally first, queue for the server, then try to send.
+  function placeOrder(input: OrderInput) {
+    const me = getMeta(&quot;person_id&quot;);
+    if (!me) throw new Error(&quot;sign in first&quot;);
+    const day = opts.today();
+    const id = `${day}:${me}`; // same rule as OrderID() in Go
+    const extras = [
+      ...new Set((input.extras ?? []).map((e) =&gt; e.trim().toLowerCase()).filter(Boolean)),
+    ].sort();
+    const order = {
+      day,
+      menu_item_id: input.menu_item_id,
+      size: input.size ?? &quot;regular&quot;,
+      milk: input.milk ?? null,
+      extras,
+      note: input.note ?? null,
+    };
+
+    db.transaction(() =&gt; {
+      db.run(
+        `INSERT INTO coffee_order
+           (id, day, person_id, menu_item_id, size, milk, extras, note, status, updated_at, version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, &#x27;placed&#x27;, ?, 0)
+         ON CONFLICT (id) DO UPDATE SET
+           menu_item_id = excluded.menu_item_id, size = excluded.size,
+           milk = excluded.milk, extras = excluded.extras, note = excluded.note,
+           status = &#x27;placed&#x27;, updated_at = excluded.updated_at,
+           version = 0, deleted_at = NULL`,
+        [id, day, me, order.menu_item_id, order.size, order.milk,
+         JSON.stringify(extras), order.note, new Date().toISOString()],
+      );
+      db.run(`INSERT INTO outbox (type, order_id, payload) VALUES (&#x27;put_order&#x27;, ?, ?)`,
+        [id, JSON.stringify(order)]);
+    });
+    opts.onChange();
+    void push(); // fine if we&#x27;re offline: the outbox keeps it
+  }
+
+  function cancelOrder() {
+    const me = getMeta(&quot;person_id&quot;);
+    const day = opts.today();
+    const id = `${day}:${me}`;
+    db.transaction(() =&gt; {
+      db.run(`UPDATE coffee_order SET deleted_at = ?, version = 0 WHERE id = ?`,
+        [new Date().toISOString(), id]);
+      db.run(`INSERT INTO outbox (type, order_id, payload) VALUES (&#x27;delete_order&#x27;, ?, ?)`,
+        [id, JSON.stringify({ day })]);
+    });
+    opts.onChange();
+    void push();
+  }
+
+  let pushing = false;
+  let pushAgain = false;
+
+  // Only one upload at a time. A push asked for mid-upload runs right after.
+  async function push() {
+    if (pushing) {
+      pushAgain = true;
+      return;
+    }
+    pushing = true;
+    try {
+      do {
+        pushAgain = false;
+        await pushOnce();
+      } while (pushAgain);
+    } finally {
+      pushing = false;
+    }
+  }
+
+  async function pushOnce() {
+    const ops = db.all(`SELECT id, type, order_id, payload FROM outbox ORDER BY id`);
+    if (ops.length === 0) return;
+
+    let results: { id: string; ok: boolean; error?: string }[];
+    try {
+      const res = await opts.fetch(&quot;/api/upload&quot;, {
+        method: &quot;POST&quot;,
+        headers: { &quot;Content-Type&quot;: &quot;application/json&quot; },
+        body: JSON.stringify({
+          ops: ops.map((o) =&gt; ({ id: String(o.id), type: o.type, order: JSON.parse(o.payload) })),
+        }),
+      });
+      if (!res.ok) return; // server trouble: the ops stay queued
+      results = (await res.json()).results;
+    } catch {
+      return; // offline: try again on the next ping, reconnect or order
+    }
+
+    db.transaction(() =&gt; {
+      for (const r of results) {
+        db.run(`DELETE FROM outbox WHERE id = ?`, [Number(r.id)]);
+        if (!r.ok) {
+          // Drop our local version, then re-pull everything (the data is
+          // tiny) so the server&#x27;s copy, if there is one, comes back.
+          const op = ops.find((o) =&gt; String(o.id) === r.id);
+          db.run(`DELETE FROM coffee_order WHERE id = ?`, [op?.order_id]);
+          setMeta(&quot;cursor&quot;, 0);
+          opts.onRejected(r.error ?? &quot;the server turned this order down&quot;);
+        }
+      }
+    });
+    await pull();
+  }
+
+  async function pull() {
+    const since = getMeta(&quot;cursor&quot;) ?? 0;
+    let data;
+    try {
+      const res = await opts.fetch(`/api/sync?since=${since}`);
+      if (!res.ok) return;
+      data = await res.json();
+    } catch {
+      return; // offline
+    }
+
+    // An order we haven&#x27;t uploaded yet beats the server&#x27;s copy.
+    const pending = new Set(db.all(`SELECT order_id FROM outbox`).map((r) =&gt; r.order_id));
+
+    db.transaction(() =&gt; {
+      for (const p of data.people) {
+        db.run(`INSERT OR REPLACE INTO person (id, name, version) VALUES (?, ?, ?)`,
+          [p.id, p.name, p.version]);
+      }
+      for (const m of data.menu_items) {
+        db.run(`INSERT OR REPLACE INTO menu_item (id, name, version, deleted_at) VALUES (?, ?, ?, ?)`,
+          [m.id, m.name, m.version, m.deleted_at]);
+      }
+      for (const o of data.orders) {
+        if (pending.has(o.id)) continue;
+        db.run(
+          `INSERT OR REPLACE INTO coffee_order
+             (id, day, person_id, menu_item_id, size, milk, extras, note,
+              status, updated_at, version, deleted_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [o.id, o.day, o.person_id, o.menu_item_id, o.size, o.milk, o.extras, o.note,
+           o.status, o.updated_at, o.version, o.deleted_at],
+        );
+      }
+      setMeta(&quot;cursor&quot;, data.cursor);
+    });
+    opts.onChange();
+  }
+
+  return { setMe, getMeta, placeOrder, cancelOrder, push, pull };
+}</code></pre></figure></details>
+  <h3>The worker and the page</h3>
+  <details class="full"><summary>Show web/src/db.worker.ts</summary><figure class="code"><figcaption><span>web/src/db.worker.ts</span><button type="button" class="copy">Copy</button></figcaption><pre><code>// The worker owns the phone&#x27;s database and runs sync. Think of it as a
+// tiny local server: the page sends it messages and gets answers back.
+import sqlite3InitModule from &quot;@sqlite.org/sqlite-wasm&quot;;
+import clientSql from &quot;../../db/client.sql?raw&quot;;
+import viewsSql from &quot;../../db/views.sql?raw&quot;;
+import { createSync, type Db, type OrderInput } from &quot;./sync&quot;;
+
+const OFFICE_TZ = &quot;Pacific/Auckland&quot;;
+
+const sqlite3 = await sqlite3InitModule();
+// opfs-sahpool stores the file in the browser&#x27;s private file system. It
+// survives reloads and needs no special server headers.
+const pool = await sqlite3.installOpfsSAHPoolVfs({ name: &quot;coffee-run&quot; });
+const raw = new pool.OpfsSAHPoolDb(&quot;/coffee.db&quot;);
+raw.exec(clientSql);
+raw.exec(viewsSql);
+
+const db: Db = {
+  all: (sql, bind = []) =&gt;
+    raw.exec({ sql, bind: bind as any, rowMode: &quot;object&quot;, returnValue: &quot;resultRows&quot; }),
+  run: (sql, bind = []) =&gt; {
+    raw.exec({ sql, bind: bind as any });
+  },
+  transaction: (fn) =&gt; {
+    raw.transaction(() =&gt; fn());
+  },
+};
+
+export const today = () =&gt;
+  new Intl.DateTimeFormat(&quot;en-CA&quot;, { timeZone: OFFICE_TZ }).format(new Date());
+
+const sync = createSync(db, {
+  fetch: (path, init) =&gt; fetch(path, init),
+  today,
+  onChange: () =&gt; postMessage({ event: &quot;changed&quot; }),
+  onRejected: (message) =&gt; postMessage({ event: &quot;rejected&quot;, message }),
+});
+
+// Live pings. EventSource reconnects by itself; every (re)connect catches
+// up, which covers phones that were offline or asleep.
+function listen() {
+  const events = new EventSource(&quot;/api/events&quot;);
+  events.addEventListener(&quot;changed&quot;, () =&gt; void sync.pull());
+  events.onopen = () =&gt; {
+    void sync.push();
+    void sync.pull();
+  };
+}
+
+const handlers = {
+  query: (sql: string, bind: unknown[]) =&gt; db.all(sql, bind),
+  me: () =&gt; sync.getMeta(&quot;person_id&quot;) ?? null,
+  today,
+  signedIn: async (person: { id: string; name: string }) =&gt; {
+    sync.setMe(person);
+    await sync.pull();
+    listen();
+  },
+  placeOrder: (input: OrderInput) =&gt; sync.placeOrder(input),
+  cancelOrder: () =&gt; sync.cancelOrder(),
+};
+export type Handlers = typeof handlers;
+
+self.onmessage = async (e: MessageEvent) =&gt; {
+  const { id, method, args } = e.data;
+  try {
+    const result = await (handlers as any)[method](...args);
+    postMessage({ reply: id, result });
+  } catch (err) {
+    postMessage({ reply: id, error: String(err) });
+  }
+};
+
+// Already signed in on this phone? Start syncing straight away.
+if (sync.getMeta(&quot;person_id&quot;)) {
+  void sync.pull();
+  listen();
+}
+postMessage({ event: &quot;ready&quot; });</code></pre></figure></details>
+  <p>On the page, a <code>useQuery</code> hook re-runs its SQL whenever the worker says the data changed, whether that was your own order or a ping from the server:</p>
+  <details class="full"><summary>Show web/src/db.ts</summary><figure class="code"><figcaption><span>web/src/db.ts</span><button type="button" class="copy">Copy</button></figcaption><pre><code>// The page&#x27;s side of the worker: call(method, ...args) returns a promise.
+import { useEffect, useState } from &quot;react&quot;;
+import type { Handlers } from &quot;./db.worker&quot;;
+
+const worker = new Worker(new URL(&quot;./db.worker.ts&quot;, import.meta.url), { type: &quot;module&quot; });
+
+let nextId = 0;
+const waiting = new Map&lt;number, { resolve: (v: any) =&gt; void; reject: (e: Error) =&gt; void }&gt;();
+const listeners = new Set&lt;(event: { event: string; message?: string }) =&gt; void&gt;();
+
+worker.onmessage = (e) =&gt; {
+  const data = e.data;
+  if (&quot;reply&quot; in data) {
+    const p = waiting.get(data.reply)!;
+    waiting.delete(data.reply);
+    data.error ? p.reject(new Error(data.error)) : p.resolve(data.result);
+  } else {
+    listeners.forEach((fn) =&gt; fn(data));
+  }
+};
+
+export function call&lt;K extends keyof Handlers&gt;(
+  method: K,
+  ...args: Parameters&lt;Handlers[K]&gt;
+): Promise&lt;Awaited&lt;ReturnType&lt;Handlers[K]&gt;&gt;&gt; {
+  return new Promise((resolve, reject) =&gt; {
+    const id = nextId++;
+    waiting.set(id, { resolve, reject });
+    worker.postMessage({ id, method, args });
+  });
+}
+
+export function onEvent(fn: (event: { event: string; message?: string }) =&gt; void) {
+  listeners.add(fn);
+  return () =&gt; void listeners.delete(fn);
+}
+
+// Like a Rails view rendering a query, except it re-runs whenever the
+// local database changes, including changes that arrived from the server.
+export function useQuery&lt;T&gt;(sql: string, bind: unknown[] = []): T[] {
+  const [rows, setRows] = useState&lt;T[]&gt;([]);
+  const key = JSON.stringify(bind);
+  useEffect(() =&gt; {
+    let live = true;
+    const run = () =&gt; call(&quot;query&quot;, sql, bind).then((r) =&gt; live &amp;&amp; setRows(r as T[]));
+    run();
+    const off = onEvent((e) =&gt; e.event === &quot;changed&quot; &amp;&amp; run());
+    return () =&gt; {
+      live = false;
+      off();
+    };
+  }, [sql, key]);
+  return rows;
+}</code></pre></figure></details>
+  <p>And the two master screens are plain <code>SELECT</code>s from the shared views:</p>
+  <figure class="code"><figcaption><span>web/src/App.tsx</span><button type="button" class="copy">Copy</button></figcaption><pre><code>// For the clerk: &quot;matcha latte × 2&quot;
+function Docket({ day }: { day: string }) {
+  const tally = useQuery&lt;{ label: string; qty: number }&gt;(
+    `SELECT label, qty FROM v_tally WHERE day = ? ORDER BY qty DESC, label`, [day]);
+  return (
+    &lt;section&gt;
+      &lt;h2&gt;Docket&lt;/h2&gt;
+      &lt;ul&gt;{tally.map((t) =&gt; &lt;li key={t.label}&gt;{t.label} × {t.qty}&lt;/li&gt;)}&lt;/ul&gt;
+    &lt;/section&gt;
+  );
+}
+
+// For us: &quot;Aaron - matcha latte&quot;
+function WhoOrdered({ day }: { day: string }) {
+  const lines = useQuery&lt;{ id: string; person: string; label: string }&gt;(
+    `SELECT id, person, label FROM v_order_line WHERE day = ? ORDER BY person`, [day]);
+  return (
+    &lt;section&gt;
+      &lt;h2&gt;Who ordered what&lt;/h2&gt;
+      &lt;ul&gt;{lines.map((l) =&gt; &lt;li key={l.id}&gt;{l.person} - {l.label}&lt;/li&gt;)}&lt;/ul&gt;
+    &lt;/section&gt;
+  );
+}</code></pre></figure>
+  <details class="full"><summary>Show the whole bare-bones App.tsx (sign-in, order box with autocomplete, both screens)</summary><figure class="code"><figcaption><span>web/src/App.tsx</span><button type="button" class="copy">Copy</button></figcaption><pre><code>import { useEffect, useState } from &quot;react&quot;;
+import { call, onEvent, useQuery } from &quot;./db&quot;;
+
+type Me = { id: string; name: string };
+
+export function App() {
+  const [me, setMe] = useState&lt;Me | null | undefined&gt;(undefined); // undefined = checking
+  const [day, setDay] = useState(&quot;&quot;);
+
+  useEffect(() =&gt; {
+    call(&quot;today&quot;).then(setDay);
+    fetch(&quot;/api/session&quot;).then(async (res) =&gt; {
+      if (!res.ok) return setMe(null);
+      const person: Me = await res.json();
+      await call(&quot;signedIn&quot;, person);
+      setMe(person);
+    }).catch(() =&gt; setMe(null));
+  }, []);
+
+  if (me === undefined) return &lt;p&gt;Loading…&lt;/p&gt;;
+  if (me === null) return &lt;SignIn onDone={setMe} /&gt;;
+  return (
+    &lt;main&gt;
+      &lt;h1&gt;Coffee run · {day}&lt;/h1&gt;
+      &lt;OrderForm /&gt;
+      &lt;Docket day={day} /&gt;
+      &lt;WhoOrdered day={day} /&gt;
+    &lt;/main&gt;
+  );
+}
+
+// The only time anyone types their name. The cookie remembers them.
+function SignIn({ onDone }: { onDone: (me: Me) =&gt; void }) {
+  const [name, setName] = useState(&quot;&quot;);
+  const [error, setError] = useState(&quot;&quot;);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const res = await fetch(&quot;/api/session&quot;, { method: &quot;POST&quot;, body: JSON.stringify({ name }) });
+    if (!res.ok) return setError(await res.text());
+    const person: Me = await res.json();
+    await call(&quot;signedIn&quot;, person);
+    onDone(person);
+  }
+  return (
+    &lt;form onSubmit={submit}&gt;
+      &lt;label htmlFor=&quot;name&quot;&gt;Your name&lt;/label&gt;
+      &lt;input id=&quot;name&quot; value={name} onChange={(e) =&gt; setName(e.target.value)} autoFocus /&gt;
+      &lt;button&gt;Start ordering&lt;/button&gt;
+      {error &amp;&amp; &lt;p role=&quot;alert&quot;&gt;{error}&lt;/p&gt;}
+    &lt;/form&gt;
+  );
+}
+
+function OrderForm() {
+  const menu = useQuery&lt;{ id: string; name: string }&gt;(
+    `SELECT id, name FROM menu_item WHERE deleted_at IS NULL ORDER BY name`,
+  );
+  const [drink, setDrink] = useState(&quot;&quot;);
+  const [error, setError] = useState(&quot;&quot;);
+  useEffect(() =&gt; onEvent((e) =&gt; e.event === &quot;rejected&quot; &amp;&amp; setError(e.message ?? &quot;&quot;)), []);
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const item = menu.find((m) =&gt; m.name.toLowerCase() === drink.trim().toLowerCase());
+    if (!item) return setError(&quot;Pick a drink from the list&quot;);
+    setError(&quot;&quot;);
+    call(&quot;placeOrder&quot;, { menu_item_id: item.id });
+    setDrink(&quot;&quot;);
+  }
+  return (
+    &lt;form onSubmit={submit}&gt;
+      &lt;label htmlFor=&quot;drink&quot;&gt;Your order&lt;/label&gt;
+      &lt;input id=&quot;drink&quot; list=&quot;menu&quot; value={drink} onChange={(e) =&gt; setDrink(e.target.value)} /&gt;
+      &lt;datalist id=&quot;menu&quot;&gt;{menu.map((m) =&gt; &lt;option key={m.id} value={m.name} /&gt;)}&lt;/datalist&gt;
+      &lt;button&gt;Order&lt;/button&gt;
+      {error &amp;&amp; &lt;p role=&quot;alert&quot;&gt;{error}&lt;/p&gt;}
+    &lt;/form&gt;
+  );
+}
+
+// For the clerk: &quot;matcha latte × 2&quot;
+function Docket({ day }: { day: string }) {
+  const tally = useQuery&lt;{ label: string; qty: number }&gt;(
+    `SELECT label, qty FROM v_tally WHERE day = ? ORDER BY qty DESC, label`, [day]);
+  return (
+    &lt;section&gt;
+      &lt;h2&gt;Docket&lt;/h2&gt;
+      &lt;ul&gt;{tally.map((t) =&gt; &lt;li key={t.label}&gt;{t.label} × {t.qty}&lt;/li&gt;)}&lt;/ul&gt;
+    &lt;/section&gt;
+  );
+}
+
+// For us: &quot;Aaron - matcha latte&quot;
+function WhoOrdered({ day }: { day: string }) {
+  const lines = useQuery&lt;{ id: string; person: string; label: string }&gt;(
+    `SELECT id, person, label FROM v_order_line WHERE day = ? ORDER BY person`, [day]);
+  return (
+    &lt;section&gt;
+      &lt;h2&gt;Who ordered what&lt;/h2&gt;
+      &lt;ul&gt;{lines.map((l) =&gt; &lt;li key={l.id}&gt;{l.person} - {l.label}&lt;/li&gt;)}&lt;/ul&gt;
+    &lt;/section&gt;
+  );
+}</code></pre></figure></details>
+  <div class="note try"><span class="tag">Try it</span><p>Run the Go server (<code>go run ./cmd/server</code>) and <code>npm run dev</code> side by side. Vite proxies <code>/api</code> to Go. Open the app in two browser profiles. Order in one and watch the other update. Then set the network to Offline in DevTools, order, go back online, and watch it sync.</p></div>
+  <div class="note"><span class="tag">Then make it a real PWA</span><p>Add <a href="https://vite-pwa-org.netlify.app/" target="_blank" rel="noopener">vite-plugin-pwa</a> for the manifest (name, icon, “Add to Home Screen”) and a service worker that caches the app, so it opens with no signal. Then restyle it as the Docket design.</p></div>
+</section>
+
+<!-- ============ 12 ============ -->
+<section class="step prose" id="s12">
+  <div class="step-head"><span class="num">12</span><h2>Ship it to clanker</h2><label class="tick"><input type="checkbox" data-step="s12" id="tick-s12">done</label></div>
+  <p>Build the web app into <code>web/dist</code>, and the Go build embeds it. You get one file that holds the API, the app and the migrations.</p>
+  <figure class="code shell"><figcaption><span>Terminal</span><button type="button" class="copy">Copy</button></figcaption><pre><code>(cd web &amp;&amp; npm run build)
+# amd64 for most servers; arm64 for a Raspberry Pi or ARM VPS
+GOOS=linux GOARCH=amd64 go build -o coffee-run ./cmd/server
+scp coffee-run clanker:/opt/coffee-run/</code></pre></figure>
+  <p>Run it as a service, with the database somewhere permanent:</p>
+  <figure class="code"><figcaption><span>/etc/systemd/system/coffee-run.service</span><button type="button" class="copy">Copy</button></figcaption><pre><code>[Unit]
+Description=Coffee Run
+After=network.target
+
+[Service]
+ExecStart=/opt/coffee-run/coffee-run
+Environment=COFFEE_ADDR=127.0.0.1:8080
+Environment=COFFEE_DB=/var/lib/coffee-run/coffee.db
+Environment=COFFEE_TZ=Pacific/Auckland
+StateDirectory=coffee-run
+DynamicUser=yes
+Restart=always
+
+[Install]
+WantedBy=multi-user.target</code></pre></figure>
+  <p>Point <code>coffee.piwakawaka-flutter.com</code> at it the same way as your other subdomains. The PWA needs HTTPS. If you use Caddy, it's two lines, and Caddy handles SSE correctly:</p>
+  <figure class="code"><figcaption><span>Caddyfile</span><button type="button" class="copy">Copy</button></figcaption><pre><code>coffee.piwakawaka-flutter.com {
+	reverse_proxy 127.0.0.1:8080
+}</code></pre></figure>
+  <p>If you use nginx instead, turn off buffering on <code>/api/events</code> (<code>proxy_buffering off;</code>) or the pings will arrive late. The proxy should also send <code>X-Forwarded-Proto</code>, which is how the server knows to set the cookie as <code>Secure</code>.</p>
+  <p><b>Backups:</b> run <a href="https://litestream.io" target="_blank" rel="noopener">Litestream</a> beside it. It streams every change in the SQLite file to S3-compatible storage, such as Backblaze B2 or Cloudflare R2, and can restore it to any point in time.</p>
+  <div class="note try"><span class="tag">Try it</span><p>Open the URL on your phone, sign in, add to home screen, order. Then <code>sudo systemctl restart coffee-run</code> and watch the app reconnect by itself.</p></div>
+</section>
+
+<!-- ============ 13 ============ -->
+<section class="step prose" id="s13">
+  <div class="step-head"><span class="num">13</span><h2>What next</h2><label class="tick"><input type="checkbox" data-step="s13" id="tick-s13">done</label></div>
+  <ul>
+    <li><b>History screen:</b> phones keep 14 days. Add <code>GET /api/history?day=…</code> for older days, read straight from <code>v_order_line</code> on the server.</li>
+    <li><b>“Leaving now”:</b> a <code>run</code> table, so whoever goes down can close the day's orders.</li>
+    <li><b>Menu editing:</b> a small admin page, or just <code>sqlite3</code> for now. Bump the version so phones notice.</li>
+    <li><b>Graceful shutdown:</b> <code>signal.NotifyContext</code> plus <code>srv.Shutdown</code>, so restarts don't cut requests off.</li>
+    <li><b>Structured logs:</b> swap <code>log</code> for <code>log/slog</code>.</li>
+  </ul>
+  <h3>Good places to learn more</h3>
+  <ul>
+    <li><a href="https://go.dev/tour/" target="_blank" rel="noopener">A Tour of Go</a>: the official interactive intro.</li>
+    <li><a href="https://gobyexample.com" target="_blank" rel="noopener">Go by Example</a>: short, runnable examples of every feature used here.</li>
+    <li><a href="https://quii.gitbook.io/learn-go-with-tests" target="_blank" rel="noopener">Learn Go with Tests</a>: learn the language through TDD. Free.</li>
+    <li><a href="https://go.dev/doc/effective_go" target="_blank" rel="noopener">Effective Go</a>: how idiomatic Go is written.</li>
+    <li><a href="https://lets-go.alexedwards.net" target="_blank" rel="noopener">Let's Go</a> by Alex Edwards: a paid book that builds a full web app with the standard library.</li>
+    <li><a href="https://www.inkandswitch.com/local-first/" target="_blank" rel="noopener">Local-first software</a> (Ink &amp; Switch): the idea behind the phone side.</li>
+  </ul>
+  <p>Stuck on a step? Ask me about that step and paste the error.</p>
+</section>
+
+<footer class="end">** THANK YOU · COME AGAIN **</footer>
+</main>
+</div>
+
+<script>
+(function () {
+  // Copy buttons
+  document.querySelectorAll("button.copy").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var code = btn.closest("figure").querySelector("code");
+      var text = code.innerText;
+      var done = function (label) { btn.textContent = label; setTimeout(function () { btn.textContent = "Copy"; }, 1400); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done("Copied"); }, function () { select(code); done("Selected"); });
+      } else { select(code); done("Selected"); }
+    });
+  });
+  function select(el) {
+    var r = document.createRange(); r.selectNodeContents(el);
+    var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  }
+
+  // Step ticks, remembered in this browser only
+  var KEY = "coffee-run-go-steps";
+  var done = {};
+  try { done = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { done = {}; }
+  var boxes = document.querySelectorAll("input[data-step]");
+  function paint() {
+    var n = 0;
+    boxes.forEach(function (b) {
+      var id = b.getAttribute("data-step");
+      b.checked = !!done[id];
+      if (done[id]) n++;
+      var link = document.querySelector('#toc a[href="#' + id + '"]');
+      if (link) link.parentElement.classList.toggle("done", !!done[id]);
+    });
+    document.getElementById("progress").textContent = n + " of " + boxes.length + " steps ticked";
+  }
+  boxes.forEach(function (b) {
+    b.addEventListener("change", function () {
+      done[b.getAttribute("data-step")] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {}
+      paint();
+    });
+  });
+  paint();
+})();
+</script>

@@ -1,0 +1,862 @@
+<title>Coffee Run Blueprint</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;700&display=swap">
+<style>
+/* Layout: a single reading column for the pitch, widening to a full grid for the phone mockups. */
+:root {
+  --bg: #f2f3ee;
+  --surface: #ffffff;
+  --ink: #1c1f19;
+  --muted: #5d6356;
+  --line: #d6d9ce;
+  --accent: #4b6b26;      /* matcha */
+  --accent-soft: #e3ead6;
+  --crema: #9a5a14;
+  --code-bg: #e9ebe3;
+  --bezel: #23251f;
+
+  /* Design A: Docket (always paper) */
+  --a-paper: #fbfaf7;
+  --a-ink: #161616;
+  --a-faint: #6b6b6b;
+  --a-red: #c0302a;
+  --a-rule: #bdbdb6;
+
+  /* Design B: Cup Board (always dark) */
+  --b-bg: #1e1612;
+  --b-card: #2c211b;
+  --b-card2: #3a2c24;
+  --b-foam: #f4e8d6;
+  --b-dim: #b8a594;
+  --b-caramel: #e3a24d;
+  --b-matcha: #9cc06a;
+
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141612; --surface: #1c1f1a; --ink: #e7e9e0; --muted: #a3a99b; --line: #343830;
+    --accent: #a6c56f; --accent-soft: #2a3320; --crema: #e2a85e; --code-bg: #20241d; --bezel: #050605;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141612; --surface: #1c1f1a; --ink: #e7e9e0; --muted: #a3a99b; --line: #343830;
+  --accent: #a6c56f; --accent-soft: #2a3320; --crema: #e2a85e; --code-bg: #20241d; --bezel: #050605;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 1.0625rem; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 4rem;
+}
+main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 4.5rem; }
+.col { max-width: 46rem; }
+h1, h2, h3, h4 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.1; }
+h2 { font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 800; letter-spacing: -0.02em; }
+h3 { font-size: 1.3rem; font-weight: 600; }
+p { margin: 0; }
+a { color: var(--accent); }
+.eyebrow { font-family: var(--f-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--crema); font-weight: 500; }
+.section-head { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem; }
+.section-head p { color: var(--muted); max-width: 42rem; }
+code { font-family: var(--f-mono); font-size: 0.88em; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Hero */
+.hero { padding-top: 3.5rem; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 3rem; align-items: end; }
+.hero h1 { font-size: clamp(3rem, 9vw, 6.2rem); font-weight: 800; letter-spacing: -0.045em; line-height: 0.92; }
+.hero h1 span { color: var(--accent); }
+.hero .lede { font-size: 1.2rem; margin-top: 1.5rem; max-width: 34rem; }
+.hero .sub { color: var(--muted); margin-top: 1rem; max-width: 34rem; }
+.spec { font-family: var(--f-mono); font-size: 0.85rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 1.25rem 1.25rem 1rem; }
+.spec h2 { font-family: var(--f-mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; color: var(--muted); margin-bottom: 0.75rem; }
+.spec ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
+.spec li { display: grid; grid-template-columns: 1.4rem 1fr; }
+.spec li::before { content: "[x]"; color: var(--accent); font-size: 0.75rem; padding-top: 0.1rem; }
+
+/* Requirement map */
+.map { width: 100%; border-collapse: collapse; font-size: 0.98rem; }
+.map th, .map td { text-align: left; vertical-align: top; padding: 0.9rem 1rem 0.9rem 0; border-top: 1px solid var(--line); }
+.map th { font-family: var(--f-display); font-weight: 600; width: 32%; }
+.map td { color: var(--ink); }
+.table-wrap { overflow-x: auto; }
+
+/* Key idea */
+.idea { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.idea figure { margin: 0; display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+.idea figcaption { font-family: var(--f-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+pre { margin: 0; background: var(--code-bg); border-radius: 6px; padding: 1rem; overflow-x: auto; font-family: var(--f-mono); font-size: 0.78rem; line-height: 1.55; color: var(--ink); }
+pre .c { color: var(--muted); }
+pre .k { color: var(--accent); font-weight: 500; }
+.idea-note { margin-top: 1.25rem; color: var(--muted); max-width: 46rem; }
+
+/* Options */
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+.opt { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.9rem; min-width: 0; }
+.opt.pick { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.opt header { display: flex; flex-direction: column; gap: 0.35rem; }
+.tag { font-family: var(--f-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--crema); }
+.opt.pick .tag { color: var(--accent); }
+.opt > p { font-size: 0.98rem; }
+.meters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem 1.25rem; margin: 0; padding: 0.8rem 0; border-block: 1px dashed var(--line); }
+.meters div { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.meters dt { font-size: 0.82rem; color: var(--muted); }
+.meters dd { margin: 0; font-family: var(--f-mono); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.dots { display: inline-flex; gap: 3px; }
+.dots i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--accent); }
+.dots i.on { background: var(--accent); }
+.dots.effort i { border-color: var(--crema); }
+.dots.effort i.on { background: var(--crema); }
+.learn { font-size: 0.92rem; color: var(--muted); }
+.learn strong { color: var(--ink); }
+.stack { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: auto; }
+.stack li { font-family: var(--f-mono); font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: var(--code-bg); }
+
+.verdict { margin-top: 2rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; }
+.verdict > div { padding: 1.5rem; border-radius: 8px; background: var(--accent-soft); display: flex; flex-direction: column; gap: 0.6rem; }
+.verdict h3 { font-size: 1.15rem; }
+.verdict ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.95rem; }
+
+/* Mockups */
+.design { display: flex; flex-direction: column; gap: 1.5rem; }
+.design + .design { margin-top: 3.5rem; }
+.design-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 1.5rem 2.5rem; align-items: start; }
+.design-head h3 { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; }
+.design-head p { color: var(--muted); }
+.phones { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem 1rem; }
+.phone { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.75rem; min-width: 0; }
+.phone figcaption { font-family: var(--f-mono); font-size: 0.78rem; color: var(--muted); display: flex; gap: 0.5rem; align-items: center; }
+.phone figcaption b { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: var(--ink); color: var(--bg); font-size: 0.7rem; }
+.scr { width: 100%; max-width: 272px; height: 560px; border: 7px solid var(--bezel); border-radius: 34px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+.scr .body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.7rem; padding: 0.9rem 1rem 1.2rem; }
+.scr button { font: inherit; cursor: pointer; }
+.scr input { font: inherit; width: 100%; }
+.scr label, .scr .lab { display: block; }
+.scr .chips, .scr .seg { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.scr .grp { display: flex; flex-direction: column; gap: 0.3rem; }
+.scr .ac { position: relative; }
+.scr .sugg { list-style: none; margin: 0.25rem 0 0; padding: 0; }
+.scr .sugg:empty { display: none; }
+.scr .sugg button { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 0.5rem; }
+.scr .rows, .scr .tally { list-style: none; margin: 0; padding: 0; }
+.scr .note:empty { display: none; }
+.scr button:disabled { cursor: not-allowed; opacity: 0.4; }
+.scr .usual[hidden] { display: none; }
+.scr .daynav { display: flex; justify-content: space-between; align-items: center; }
+
+/* ---------- Design A: Docket ---------- */
+.dA .scr { background: var(--a-paper); color: var(--a-ink); font-family: var(--f-mono); font-size: 0.8rem; line-height: 1.45; }
+.dA .scr::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 8px;
+  background: linear-gradient(-45deg, var(--bezel) 4px, transparent 0) 0 0 / 10px 8px repeat-x, linear-gradient(45deg, var(--bezel) 4px, transparent 0) 0 0 / 10px 8px repeat-x; }
+.dA .top { padding: 1.4rem 1rem 0.6rem; border-bottom: 1px dashed var(--a-rule); display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; }
+.dA .brand { font-weight: 700; letter-spacing: 0.14em; }
+.dA .when, .dA .me { color: var(--a-faint); }
+.dA .me b { color: var(--a-ink); }
+.dA h4 { font-family: var(--f-mono); font-size: 1.15rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; line-height: 1.2; }
+.dA .kicker { color: var(--a-red); text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.68rem; }
+.dA .hint { color: var(--a-faint); font-size: 0.74rem; }
+.dA label, .dA .lab { text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.66rem; color: var(--a-faint); }
+.dA input { background: transparent; border: 0; border-bottom: 2px solid var(--a-ink); padding: 0.35rem 0; color: var(--a-ink); font-size: 0.95rem; border-radius: 0; }
+.dA input:focus { outline: none; border-bottom-color: var(--a-red); }
+.dA .chips button, .dA .seg button { background: transparent; color: var(--a-ink); border: 1px solid var(--a-ink); padding: 0.2rem 0.45rem; font-size: 0.72rem; border-radius: 0; }
+.dA .chips button[aria-pressed="true"], .dA .seg button[aria-pressed="true"] { background: var(--a-ink); color: var(--a-paper); }
+.dA .sugg { border: 1px solid var(--a-ink); }
+.dA .sugg li + li { border-top: 1px dashed var(--a-rule); }
+.dA .sugg button { background: transparent; border: 0; padding: 0.35rem 0.5rem; color: var(--a-ink); }
+.dA .sugg button:hover, .dA .sugg li:first-child button { background: #efede6; }
+.dA .sugg small { color: var(--a-faint); font-size: 0.66rem; }
+.dA .primary { background: var(--a-ink); color: var(--a-paper); border: 0; padding: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; margin-top: auto; border-radius: 0; }
+.dA .ghost { background: transparent; color: var(--a-ink); border: 1px dashed var(--a-ink); padding: 0.55rem; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.7rem; border-radius: 0; }
+.dA .usual { background: transparent; border: 1px dashed var(--a-red); color: var(--a-red); text-align: left; padding: 0.45rem 0.55rem; font-size: 0.72rem; border-radius: 0; }
+.dA .preview { border-top: 1px dashed var(--a-rule); padding-top: 0.6rem; font-size: 0.8rem; }
+.dA .preview em { font-style: normal; color: var(--a-faint); }
+.dA .note { color: var(--a-red); font-size: 0.72rem; }
+.dA .who button { border-style: dashed; }
+.dA .daynav { padding: 1.4rem 0.6rem 0.6rem; }
+.dA .daynav button { background: transparent; border: 0; color: var(--a-ink); font-size: 1.1rem; padding: 0 0.5rem; }
+.dA .count { color: var(--a-faint); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.dA .rows li { display: flex; align-items: baseline; gap: 0.35rem; padding: 0.3rem 0; }
+.dA .rows .nm { font-weight: 700; text-transform: uppercase; flex-shrink: 0; }
+.dA .rows .lead { flex: 1; border-bottom: 1px dotted var(--a-rule); transform: translateY(-0.25em); min-width: 0.5rem; }
+.dA .rows .dr { text-align: right; max-width: 60%; }
+.dA .rows .mine .nm::after { content: " *"; color: var(--a-red); }
+.dA .av, .dA .you { display: none; }
+.dA .dockethead { text-align: center; border-bottom: 1px dashed var(--a-rule); padding-bottom: 0.6rem; font-size: 0.7rem; color: var(--a-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+.dA .dockethead strong { display: block; color: var(--a-ink); font-size: 1rem; letter-spacing: 0.18em; }
+.dA .tally li button { width: 100%; display: grid; grid-template-columns: 2.6rem 1fr; gap: 0.3rem; background: transparent; border: 0; padding: 0.45rem 0; text-align: left; color: var(--a-ink); border-bottom: 1px dashed var(--a-rule); }
+.dA .tally .n { font-size: 1.3rem; font-weight: 700; line-height: 1; }
+.dA .tally .l { font-size: 0.9rem; font-weight: 500; text-transform: uppercase; align-self: center; }
+.dA .tally button[aria-pressed="true"] .l { text-decoration: line-through; text-decoration-color: var(--a-red); text-decoration-thickness: 2px; color: var(--a-faint); }
+.dA .tally button[aria-pressed="true"] .n { color: var(--a-red); }
+.dA .total { display: flex; justify-content: space-between; font-weight: 700; text-transform: uppercase; padding-top: 0.2rem; border-top: 2px solid var(--a-ink); }
+
+/* ---------- Design B: Cup Board ---------- */
+.dB .scr { background: var(--b-bg); color: var(--b-foam); font-family: var(--f-display); font-size: 0.85rem; line-height: 1.35; }
+.dB .top { padding: 1.3rem 1rem 0.4rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.dB .brand { font-weight: 800; font-size: 1rem; letter-spacing: -0.02em; }
+.dB .when, .dB .me { color: var(--b-dim); font-size: 0.75rem; }
+.dB .me b { display: inline-grid; place-items: center; min-width: 1.8rem; height: 1.8rem; border-radius: 50%; background: var(--b-caramel); color: var(--b-bg); font-weight: 800; padding: 0 0.3rem; }
+.dB .me span { display: none; }
+.dB h4 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+.dB .kicker { color: var(--b-caramel); font-weight: 600; font-size: 0.75rem; }
+.dB .hint { color: var(--b-dim); font-size: 0.78rem; }
+.dB label, .dB .lab { font-size: 0.72rem; color: var(--b-dim); font-weight: 600; }
+.dB input { background: var(--b-card); border: 2px solid transparent; border-radius: 14px; padding: 0.7rem 0.8rem; color: var(--b-foam); font-size: 1rem; }
+.dB input:focus { outline: none; border-color: var(--b-caramel); }
+.dB input::placeholder { color: var(--b-dim); }
+.dB .chips button, .dB .seg button { background: var(--b-card); color: var(--b-foam); border: 0; padding: 0.4rem 0.7rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+.dB .seg { background: var(--b-card); border-radius: 999px; padding: 3px; flex-wrap: nowrap; }
+.dB .seg button { flex: 1; background: transparent; }
+.dB .chips button[aria-pressed="true"], .dB .seg button[aria-pressed="true"] { background: var(--b-caramel); color: var(--b-bg); }
+.dB .sugg { background: var(--b-card); border-radius: 14px; overflow: hidden; }
+.dB .sugg button { background: transparent; border: 0; color: var(--b-foam); padding: 0.55rem 0.8rem; font-weight: 600; }
+.dB .sugg li:first-child button, .dB .sugg button:hover { background: var(--b-card2); }
+.dB .sugg small { color: var(--b-dim); font-weight: 400; font-size: 0.7rem; }
+.dB .primary { background: var(--b-matcha); color: var(--b-bg); border: 0; border-radius: 16px; padding: 0.85rem; font-weight: 800; font-size: 0.95rem; margin-top: auto; }
+.dB .ghost { background: var(--b-card); color: var(--b-foam); border: 0; border-radius: 14px; padding: 0.7rem; font-weight: 600; }
+.dB .usual { background: var(--b-card2); color: var(--b-foam); border: 0; border-radius: 16px; padding: 0.7rem 0.8rem; text-align: left; font-size: 0.78rem; }
+.dB .usual strong { display: block; font-size: 0.95rem; color: var(--b-caramel); }
+.dB .preview { background: var(--b-card); border-radius: 14px; padding: 0.6rem 0.8rem; font-weight: 600; }
+.dB .preview em { font-style: normal; color: var(--b-dim); font-weight: 400; }
+.dB .note { color: var(--b-matcha); font-size: 0.78rem; font-weight: 600; }
+.dB .daynav button { background: var(--b-card); color: var(--b-foam); border: 0; border-radius: 50%; width: 2rem; height: 2rem; font-size: 1rem; }
+.dB .daynav span { font-weight: 800; }
+.dB .count { color: var(--b-dim); font-size: 0.75rem; }
+.dB .rows { display: flex; flex-direction: column; gap: 0.4rem; }
+.dB .rows li { display: flex; align-items: center; gap: 0.6rem; background: var(--b-card); border-radius: 14px; padding: 0.5rem 0.6rem; }
+.dB .rows .mine { background: var(--b-card2); box-shadow: inset 0 0 0 2px var(--b-caramel); }
+.dB .av { flex-shrink: 0; width: 2rem; height: 2rem; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 0.8rem; color: var(--b-bg); }
+.dB .rows .tx { display: flex; flex-direction: column; min-width: 0; }
+.dB .rows .nm { font-weight: 800; }
+.dB .rows .dr { color: var(--b-dim); font-size: 0.78rem; }
+.dB .rows .lead { display: none; }
+.dB .you { margin-left: auto; font-size: 0.65rem; font-weight: 800; color: var(--b-caramel); text-transform: uppercase; letter-spacing: 0.08em; }
+.dB .dockethead { display: none; }
+.dB .tally { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
+.dB .tally li button { width: 100%; height: 100%; min-height: 6.2rem; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 0.3rem; background: var(--b-card); color: var(--b-foam); border: 0; border-radius: 16px; padding: 0.6rem 0.7rem; text-align: left; }
+.dB .tally .n { font-size: 2.3rem; font-weight: 800; line-height: 1; color: var(--b-caramel); letter-spacing: -0.04em; }
+.dB .tally .n::after { content: "×"; font-size: 1.1rem; margin-left: 2px; }
+.dB .tally .l { font-weight: 600; font-size: 0.8rem; }
+.dB .tally button[aria-pressed="true"] { background: var(--b-matcha); color: var(--b-bg); }
+.dB .tally button[aria-pressed="true"] .n { color: var(--b-bg); }
+.dB .total { color: var(--b-dim); font-size: 0.8rem; display: flex; justify-content: space-between; }
+
+/* Detail notes */
+.details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 2.5rem; }
+.details > div { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+.details p { color: var(--muted); font-size: 0.98rem; }
+.details p strong { color: var(--ink); }
+
+/* Roadmap (a real sequence) */
+.road { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; counter-reset: step; }
+.road li { counter-increment: step; display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: 1rem; padding: 1rem 0; border-top: 1px solid var(--line); }
+.road li::before { content: counter(step, decimal-leading-zero); font-family: var(--f-mono); color: var(--crema); font-size: 0.9rem; padding-top: 0.15rem; }
+.road h3 { font-size: 1.1rem; }
+.road p { color: var(--muted); font-size: 0.96rem; margin-top: 0.2rem; }
+
+footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 1.25rem; }
+
+@media (max-width: 860px) {
+  .hero, .design-head, .verdict, .details { grid-template-columns: 1fr; }
+  .opts { grid-template-columns: 1fr; }
+  .idea { grid-template-columns: 1fr; }
+  .hero { gap: 2rem; }
+}
+@media (max-width: 420px) {
+  .meters { grid-template-columns: 1fr; }
+  .map th { width: 40%; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<main>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Build plan · office coffee run</p>
+      <h1>Coffee<br><span>Run</span></h1>
+      <p class="lede">One link on everyone's phone. Type your name once, tap your drink, and the person going downstairs gets a tidy docket for the counter.</p>
+      <p class="sub">Below: eight ways to build it (picked for what they teach and how they read on a CV), the one data idea that makes all of them simple, and two interactive designs you can poke at right now.</p>
+    </div>
+    <aside class="spec" aria-labelledby="spec-h">
+      <h2 id="spec-h">Your spec</h2>
+      <ul>
+        <li>Open a URL on your phone</li>
+        <li>Enter your name as rarely as possible</li>
+        <li>Add your order from an autocompleting list</li>
+        <li>Orders clear every day</li>
+        <li>Browse previous days</li>
+        <li>View 1: aaron – matcha, alex – matcha</li>
+        <li>View 2: matcha × 2</li>
+      </ul>
+    </aside>
+  </header>
+
+  <section aria-labelledby="idea-h">
+    <div class="section-head">
+      <p class="eyebrow">The one idea</p>
+      <h2 id="idea-h">One table, two queries, no deletes</h2>
+      <p>Every option below shares this core. Orders are stamped with the office's date. "Clearing" each day is just filtering by today, so the history comes free. Both master views read the same rows, one listed by person and one grouped by drink.</p>
+    </div>
+    <div class="idea">
+      <figure>
+        <figcaption>The data</figcaption>
+<pre><span class="k">create table</span> person (
+  id    uuid <span class="k">primary key</span>,
+  name  text <span class="k">not null</span>
+);
+
+<span class="k">create table</span> orders (
+  day        date,  <span class="c">-- office-local date</span>
+  person_id  uuid <span class="k">references</span> person,
+  drink      text,  <span class="c">-- from the menu</span>
+  size       text,
+  milk       text,
+  extras     text[],
+  placed_at  timestamptz <span class="k">default</span> now(),
+  <span class="k">primary key</span> (day, person_id)
+  <span class="c">-- one order per person per day;</span>
+  <span class="c">-- re-ordering is an upsert</span>
+);</pre>
+      </figure>
+      <figure>
+        <figcaption>View 1 · who ordered what</figcaption>
+<pre><span class="k">select</span> p.name, o.size, o.milk,
+       o.drink, o.extras
+<span class="k">from</span> orders o
+<span class="k">join</span> person p <span class="k">on</span> p.id = o.person_id
+<span class="k">where</span> o.day = :today
+<span class="k">order by</span> o.placed_at;
+
+<span class="c">-- Aaron   matcha latte</span>
+<span class="c">-- Alex    matcha latte</span>
+<span class="c">-- Priya   oat flat white</span></pre>
+      </figure>
+      <figure>
+        <figcaption>View 2 · the clerk's docket</figcaption>
+<pre><span class="k">select</span> size, milk, drink, extras,
+       count(*) <span class="k">as</span> n
+<span class="k">from</span> orders
+<span class="k">where</span> day = :today
+<span class="k">group by</span> size, milk, drink, extras
+<span class="k">order by</span> n <span class="k">desc</span>;
+
+<span class="c">-- 2  matcha latte</span>
+<span class="c">-- 2  oat flat white</span>
+<span class="c">-- 1  long black</span></pre>
+      </figure>
+    </div>
+    <p class="idea-note">Watch the time zone. If "today" is computed in UTC, an office in Sydney (UTC+11 in October) would see the list clear at 11am, right in the middle of the run. Compute <code>:today</code> in the office's zone, on the server.</p>
+  </section>
+
+  <section aria-labelledby="map-h">
+    <div class="section-head">
+      <p class="eyebrow">Spec to solution</p>
+      <h2 id="map-h">How each requirement gets met</h2>
+    </div>
+    <div class="table-wrap">
+      <table class="map">
+        <tbody>
+          <tr><th scope="row">Open a URL on your phone</th><td>A mobile-first web app with a short link, plus a QR code stuck on the kitchen fridge. Make it an installable PWA so it sits on the home screen like an app.</td></tr>
+          <tr><th scope="row">Enter your name rarely</th><td>On first visit the server creates a person and sets a long-lived HttpOnly cookie holding a random ID. Don't rely on localStorage alone: Safari clears script-written storage after 7 days without a visit, which a two-week holiday will trigger. On a new phone you tap your name from the list. Passkeys are the upgrade if you want it to feel slick.</td></tr>
+          <tr><th scope="row">Autocomplete to a set list</th><td>A <code>menu</code> table, fuzzy-matched as you type, ranked by what this office actually orders. Your own usual sits at the top as a one-tap "same as yesterday".</td></tr>
+          <tr><th scope="row">Clears every day</th><td>Nothing gets deleted and nothing needs a midnight cron job. Today's views filter by today's date.</td></tr>
+          <tr><th scope="row">See previous days</th><td>The same query with a different date, behind a ‹ › day switcher.</td></tr>
+          <tr><th scope="row">Two master views</th><td>Two read-only queries over the same rows (see above). Push changes live over WebSockets or Server-Sent Events so the clerk's screen updates while they walk to the café.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="opts-h">
+    <div class="section-head">
+      <p class="eyebrow">Eight ways to build it</p>
+      <h2 id="opts-h">Pick the stack for what you want to learn</h2>
+      <p>The app is small enough that any of these will work. The difference is what you walk away knowing and how it sounds in an interview. Ratings are my judgement, out of five.</p>
+    </div>
+
+    <div class="opts">
+      <article class="opt pick">
+        <header><span class="tag">My pick · the hireable default</span><h3>Next.js + TypeScript + Postgres</h3></header>
+        <p>The stack most job ads ask for right now. React server components render the lists, server actions handle "add my order", Drizzle or Prisma talks to Postgres. Hosted Postgres like Neon or Supabase gives you a free database, and Supabase Realtime pushes new orders to every phone.</p>
+        <dl class="meters">
+          <div><dt>Employability</dt><dd><span class="dots" data-n="5"></span></dd></div>
+          <div><dt>Cool factor</dt><dd><span class="dots" data-n="2"></span></dd></div>
+          <div><dt>Build effort</dt><dd><span class="dots effort" data-n="2"></span></dd></div>
+          <div><dt>Hosting</dt><dd>$0 / month</dd></div>
+        </dl>
+        <p class="learn"><strong>You'd learn:</strong> full-stack TypeScript, SQL schema design, server rendering, auth cookies, deploying with previews per branch.</p>
+        <ul class="stack"><li>Next.js</li><li>TypeScript</li><li>Postgres</li><li>Drizzle</li><li>Vercel</li><li>Playwright</li></ul>
+      </article>
+
+      <article class="opt">
+        <header><span class="tag">The enterprise one</span><h3>AWS serverless with CDK</h3></header>
+        <p>A React app on S3 and CloudFront, Lambdas behind API Gateway, and DynamoDB with a single-table design: partition key <code>DAY#2026-10-16</code>, sort key <code>PERSON#rob</code>. API Gateway WebSockets broadcast new orders. All of it defined in TypeScript with AWS CDK.</p>
+        <dl class="meters">
+          <div><dt>Employability</dt><dd><span class="dots" data-n="5"></span></dd></div>
+          <div><dt>Cool factor</dt><dd><span class="dots" data-n="3"></span></dd></div>
+          <div><dt>Build effort</dt><dd><span class="dots effort" data-n="4"></span></dd></div>
+          <div><dt>Hosting</dt><dd>~$0 (free tier)</dd></div>
+        </dl>
+        <p class="learn"><strong>You'd learn:</strong> infrastructure as code, IAM, NoSQL access-pattern modelling, event-driven design. "Built and deployed on AWS with CDK" is a strong CV line.</p>
+        <ul class="stack"><li>Lambda</li><li>DynamoDB</li><li>API Gateway</li><li>CDK</li><li>CloudFront</li></ul>
+      </article>
+
+      <article class="opt">
+        <header><span class="tag">Edge-native</span><h3>Cloudflare Workers + Durable Objects</h3></header>
+        <p>One Durable Object per office per day acts as a tiny stateful server. It holds today's orders in memory, writes them to its built-in SQLite storage, and keeps a WebSocket open to every phone. History goes to D1. Global, instant and almost free.</p>
+        <dl class="meters">
+          <div><dt>Employability</dt><dd><span class="dots" data-n="3"></span></dd></div>
+          <div><dt>Cool factor</dt><dd><span class="dots" data-n="5"></span></dd></div>
+          <div><dt>Build effort</dt><dd><span class="dots effort" data-n="3"></span></dd></div>
+          <div><dt>Hosting</dt><dd>$0–5 / month</dd></div>
+        </dl>
+        <p class="learn"><strong>You'd learn:</strong> the actor model, edge computing, WebSocket hibernation, and why "where does the state live" is the real question in distributed systems.</p>
+        <ul class="stack"><li>Workers</li><li>Durable Objects</li><li>D1</li><li>Hono</li><li>WebSockets</li></ul>
+      </article>
+
+      <article class="opt">
+        <header><span class="tag">Realtime without writing JS</span><h3>Elixir + Phoenix LiveView</h3></header>
+        <p>The server holds the UI state and streams HTML diffs over a socket. When Aaron adds a matcha, Phoenix PubSub tells every open page and the clerk's tally ticks up. Realtime is the default here, so you write almost no client code.</p>
+        <dl class="meters">
+          <div><dt>Employability</dt><dd><span class="dots" data-n="2"></span></dd></div>
+          <div><dt>Cool factor</dt><dd><span class="dots" data-n="5"></span></dd></div>
+          <div><dt>Build effort</dt><dd><span class="dots effort" data-n="3"></span></dd></div>
+          <div><dt>Hosting</dt><dd>$0–5 / month</dd></div>
+        </dl>
+        <p class="learn"><strong>You'd learn:</strong> functional programming, the BEAM VM, supervision trees, pattern matching. Fewer jobs, but the teams hiring for it value it highly.</p>
+        <ul class="stack"><li>Elixir</li><li>Phoenix</li><li>LiveView</li><li>Ecto</li><li>Fly.io</li></ul>
+      </article>
+
+      <article class="opt">
+        <header><span class="tag">Hypermedia minimalist</span><h3>Go + htmx + SQLite</h3></header>
+        <p>One compiled binary serves HTML templates. htmx swaps in fragments when you add an order, and Server-Sent Events push updates. SQLite is the database, with Litestream streaming backups to object storage. The whole app fits in your head.</p>
+        <dl class="meters">
+          <div><dt>Employability</dt><dd><span class="dots" data-n="4"></span></dd></div>
+          <div><dt>Cool factor</dt><dd><span class="dots" data-n="4"></span></dd></div>
+          <div><dt>Build effort</dt><dd><span class="dots effort" data-n="2"></span></dd></div>
+          <div><dt>Hosting</dt><dd>~$5 VPS</dd></div>
+        </dl>
+        <p class="learn"><strong>You'd learn:</strong> Go's standard library HTTP server, concurrency with goroutines, running your own box, and how much you can do without a frontend framework.</p>
+        <ul class="stack"><li>Go</li><li>htmx</li><li>SQLite</li><li>Litestream</li><li>SSE</li><li>Docker</li></ul>
+      </article>
+
+      <article class="opt">
+        <header><span class="tag">Works in the lift</span><h3>Local-first PWA with a sync engine</h3></header>
+        <p>The data lives on each phone first and syncs in the background, so the clerk's docket still works with no signal in the basement café. Use a sync engine like Zero or ElectricSQL over Postgres, or CRDTs with Yjs or Automerge. Every tap is instant because it never waits on a server.</p>
+        <dl class="meters">
+          <div><dt>Employability</dt><dd><span class="dots" data-n="3"></span></dd></div>
+          <div><dt>Cool factor</dt><dd><span class="dots" data-n="5"></span></dd></div>
+          <div><dt>Build effort</dt><dd><span class="dots effort" data-n="4"></span></dd></div>
+          <div><dt>Hosting</dt><dd>$0 / month</dd></div>
+        </dl>
+        <p class="learn"><strong>You'd learn:</strong> service workers, offline caching, conflict resolution, and how sync actually works. Strong interview material because few people have built one.</p>
+        <ul class="stack"><li>PWA</li><li>Service Worker</li><li>IndexedDB</li><li>Zero / Electric</li><li>CRDTs</li></ul>
+      </article>
+
+      <article class="opt">
+        <header><span class="tag">The architect's answer</span><h3>Event sourcing + CQRS in .NET or Kotlin</h3></header>
+        <p>Store what happened (<code>OrderPlaced</code>, <code>OrderChanged</code>, <code>OrderCancelled</code>) instead of current state. Your two master views become two projections built from the same event stream, which is exactly the CQRS pattern. History, undo and "what did the office drink in March" all fall out of the log.</p>
+        <dl class="meters">
+          <div><dt>Employability</dt><dd><span class="dots" data-n="4"></span></dd></div>
+          <div><dt>Cool factor</dt><dd><span class="dots" data-n="4"></span></dd></div>
+          <div><dt>Build effort</dt><dd><span class="dots effort" data-n="4"></span></dd></div>
+          <div><dt>Hosting</dt><dd>$5–10 / month</dd></div>
+        </dl>
+        <p class="learn"><strong>You'd learn:</strong> domain-driven design, projections, idempotency. Banks, insurers and large enterprises use these patterns, so it carries weight in those interviews.</p>
+        <ul class="stack"><li>ASP.NET Core</li><li>Marten</li><li>or Spring Boot</li><li>Postgres</li><li>SignalR</li></ul>
+      </article>
+
+      <article class="opt">
+        <header><span class="tag">Gloriously over-engineered</span><h3>Microservices on Kubernetes</h3></header>
+        <p>An orders service, a menu service and a tally service talking gRPC, with events on NATS or Kafka. Terraform for the infrastructure, Helm charts, OpenTelemetry traces, Grafana dashboards. Run it on k3s on a Raspberry Pi under your desk. Ridiculous for six coffees, which is the joke.</p>
+        <dl class="meters">
+          <div><dt>Employability</dt><dd><span class="dots" data-n="4"></span></dd></div>
+          <div><dt>Cool factor</dt><dd><span class="dots" data-n="4"></span></dd></div>
+          <div><dt>Build effort</dt><dd><span class="dots effort" data-n="5"></span></dd></div>
+          <div><dt>Hosting</dt><dd>A Raspberry Pi</dd></div>
+        </dl>
+        <p class="learn"><strong>You'd learn:</strong> platform and DevOps skills: containers, orchestration, observability, service boundaries. Aimed at platform engineer and SRE roles.</p>
+        <ul class="stack"><li>Kubernetes</li><li>k3s</li><li>gRPC</li><li>NATS</li><li>Terraform</li><li>OpenTelemetry</li></ul>
+      </article>
+    </div>
+
+    <div class="verdict">
+      <div>
+        <p class="eyebrow">If it's for the CV</p>
+        <h3>Next.js + Postgres, built like a professional</h3>
+        <p>The stack matters less than the habits around it. These are what make a small project read as real engineering:</p>
+        <ul>
+          <li>Realtime updates on both master views</li>
+          <li>Playwright tests that place orders and check the tally</li>
+          <li>GitHub Actions running lint, types and tests on every push</li>
+          <li>Docker for local Postgres, migrations checked in</li>
+          <li>Accessible forms and a README with screenshots</li>
+          <li>Real users: your office, with a usage number to quote</li>
+        </ul>
+      </div>
+      <div>
+        <p class="eyebrow">If it's for the fun of it</p>
+        <h3>Phoenix LiveView, or Durable Objects</h3>
+        <p>Both make realtime feel effortless and will change how you think about where state lives. LiveView teaches you a new language and a new model of UI. Durable Objects teach you the edge and the actor model in a few hundred lines of TypeScript.</p>
+        <p>Either way, borrow the event-sourcing idea: log every order change. It costs one extra table and gives you a great "what I learned" story.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="designs-h">
+    <div class="section-head">
+      <p class="eyebrow">Two designs · interactive</p>
+      <h2 id="designs-h">Try it: both designs share one live order list</h2>
+      <p>These are working mockups with example people. Change your name, type into the drink box to see the autocomplete, add an order, then watch it show up in both master views. Tap a line on the clerk's docket to tick it off. Nothing is saved; reload to reset.</p>
+    </div>
+
+    <div class="design dA" id="design-a">
+      <div class="design-head">
+        <div><p class="eyebrow">Design A</p><h3>The Docket</h3></div>
+        <p>Styled like a café's own thermal-printed order ticket. Monospace type, dashed rules and dotted leaders between name and drink. The clerk's view is literally a docket you can hold up to the barista, and ticking a line strikes it through in red pen. Quiet, legible, and a bit of a wink at the subject.</p>
+      </div>
+      <div class="phones" data-design="A"></div>
+    </div>
+
+    <div class="design dB" id="design-b">
+      <div class="design-head">
+        <div><p class="eyebrow">Design B</p><h3>Cup Board</h3></div>
+        <p>A dark, thumb-first app. Big rounded targets, pill toggles for size and milk, a colored avatar for each person so you can find yourself at a glance. The clerk's view is a grid of oversized counts readable at arm's length on a busy counter, and tiles turn green as drinks get made.</p>
+      </div>
+      <div class="phones" data-design="B"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="det-h">
+    <div class="section-head">
+      <p class="eyebrow">Details that make it feel finished</p>
+      <h2 id="det-h">The small things people notice</h2>
+    </div>
+    <div class="details">
+      <div><h3>Name once, really</h3><p><strong>Server-set cookie with a random ID</strong>, refreshed on each visit. Browsers cap cookie lifetime at around 400 days, so refreshing keeps it alive indefinitely. New phone? Tap your name on the list. Want to go further? Passkeys via WebAuthn mean Face ID gets you back in on any device.</p></div>
+      <div><h3>Autocomplete that learns</h3><p><strong>Fuzzy match on the menu</strong> (Fuse.js on the client, or Postgres <code>pg_trgm</code> on the server), then sort by how often this office orders each drink. "lat" should offer latte, flat white and matcha latte, with the popular one first.</p></div>
+      <div><h3>The clerk's screen</h3><p><strong>Big type and a Screen Wake Lock</strong> so the phone doesn't dim at the counter. Tap to tick off each drink. A "copy as text" button for pasting into Teams or Slack, or reading out to the barista.</p></div>
+      <div><h3>Normalise the order</h3><p><strong>Store drink, size, milk and extras as separate fields</strong>, not free text. That's what lets "Oat flat white" from two people collapse into "2 ×" on the docket instead of appearing as two near-duplicate strings.</p></div>
+      <div><h3>One order per person</h3><p><strong>A unique key on (day, person)</strong>. Adding again replaces your order rather than duplicating it, and the button says "Update my order" so nobody's surprised.</p></div>
+      <div><h3>A cut-off</h3><p><strong>Whoever's going taps "Leaving now"</strong>. It locks the list, pushes a notification to everyone who hasn't ordered, and stamps the docket with a time. This is a nice place to add Web Push.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="road-h">
+    <div class="section-head">
+      <p class="eyebrow">Build order</p>
+      <h2 id="road-h">A sensible path from zero to the office using it</h2>
+    </div>
+    <ol class="road">
+      <li><div><h3>Static prototype</h3><p>Click through a mockup like the ones above with hard-coded data. Show it to two colleagues and fix what confuses them.</p></div></li>
+      <li><div><h3>Schema and the name cookie</h3><p>Set up the database, migrations, the person table and the first-visit flow. Prove a phone stays remembered after a restart.</p></div></li>
+      <li><div><h3>Add an order and both master views</h3><p>The menu table, autocomplete, the upsert, and the two queries. At this point it's usable, so ship it to the office.</p></div></li>
+      <li><div><h3>Realtime and history</h3><p>Live updates over WebSockets or SSE, the day switcher, and "same as yesterday".</p></div></li>
+      <li><div><h3>Tests, CI and a proper deploy</h3><p>Playwright end-to-end tests for the full order flow, a GitHub Actions pipeline, preview deployments, error tracking.</p></div></li>
+      <li><div><h3>Stretch goals</h3><p>Passkeys, installable PWA, push notification at cut-off, stats on the office's caffeine habit, multiple offices.</p></div></li>
+    </ol>
+  </section>
+
+  <footer>Mockup people, orders and dates are examples. Ratings are opinions meant to help you choose, not market data.</footer>
+</main>
+
+<script>
+(function () {
+  const MENU = [
+    ["Flat white", true], ["Latte", true], ["Cappuccino", true], ["Long black", false],
+    ["Americano", false], ["Espresso", false], ["Macchiato", true], ["Piccolo", true],
+    ["Mocha", true], ["Chai latte", true], ["Dirty chai", true], ["Matcha latte", true],
+    ["Hot chocolate", true], ["Iced latte", true], ["Iced long black", false],
+    ["Cold brew", false], ["English breakfast tea", true]
+  ].map(([n, milk]) => ({ n, milk }));
+  const SIZES = ["Small", "Regular", "Large"];
+  const MILKS = ["Full cream", "Skim", "Oat", "Soy", "Almond", "Lactose free"];
+  const EXTRAS = ["Extra shot", "Decaf", "1 sugar", "Extra hot"];
+  const o = (name, drink, size = "Regular", milk = "Full cream", extras = []) => ({ name, drink, size, milk, extras });
+
+  const S = {
+    me: "Rob",
+    people: ["Aaron", "Alex", "Priya", "Mei", "Sam", "Jordan", "Rob"],
+    days: [
+      { label: "Fri 16 Oct", orders: [
+        o("Aaron", "Matcha latte"), o("Alex", "Matcha latte"), o("Priya", "Flat white", "Regular", "Oat"),
+        o("Mei", "Flat white", "Regular", "Oat"), o("Sam", "Long black"), o("Jordan", "Latte", "Large", "Full cream", ["Extra shot"])
+      ]},
+      { label: "Thu 15 Oct", orders: [
+        o("Aaron", "Matcha latte"), o("Priya", "Flat white", "Regular", "Oat"), o("Rob", "Flat white", "Large", "Oat"),
+        o("Sam", "Long black"), o("Mei", "Chai latte", "Regular", "Soy")
+      ]},
+      { label: "Wed 14 Oct", orders: [
+        o("Alex", "Iced latte"), o("Rob", "Flat white", "Large", "Oat"), o("Jordan", "Cappuccino"),
+        o("Sam", "Long black", "Large"), o("Priya", "Flat white", "Regular", "Oat"), o("Aaron", "Matcha latte", "Regular", "Almond")
+      ]}
+    ]
+  };
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const hasMilk = d => (MENU.find(m => m.n === d) || { milk: true }).milk;
+  function label(x) {
+    const parts = [];
+    if (x.size !== "Regular") parts.push(x.size);
+    if (hasMilk(x.drink) && x.milk !== "Full cream") parts.push(x.milk);
+    parts.push(x.drink);
+    let s = parts.join(" ").toLowerCase();
+    s = s.charAt(0).toUpperCase() + s.slice(1);
+    if (x.extras.length) s += ", " + x.extras.join(", ").toLowerCase();
+    return s;
+  }
+  function popularity(drink) {
+    let n = 0; S.days.forEach(d => d.orders.forEach(x => { if (x.drink === drink) n++; })); return n;
+  }
+  function score(q, s) {
+    q = q.toLowerCase().trim(); s = s.toLowerCase();
+    if (!q) return -1;
+    const i = s.indexOf(q);
+    if (i === 0) return 300;
+    if (i > 0) return (s[i - 1] === " " ? 250 : 200) - i;
+    let j = 0, gaps = 0, last = -1;
+    for (let k = 0; k < s.length && j < q.length; k++) {
+      if (s[k] === q[j]) { if (last >= 0) gaps += k - last - 1; last = k; j++; }
+    }
+    return j === q.length ? 100 - gaps : -1;
+  }
+  function suggest(q) {
+    return MENU.map(m => ({ n: m.n, pop: popularity(m.n), s: score(q, m.n) }))
+      .filter(m => m.s >= 0)
+      .sort((a, b) => (b.s + b.pop * 8) - (a.s + a.pop * 8))
+      .slice(0, 4);
+  }
+  const hue = name => { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+  const today = () => S.days[0];
+  function myYesterday() { return S.days[1].orders.find(x => x.name === S.me); }
+  function grouped(day) {
+    const m = new Map();
+    day.orders.forEach(x => { const k = label(x); m.set(k, (m.get(k) || 0) + 1); });
+    return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }
+
+  const designs = [];
+
+  function template(P) {
+    return `
+<figure class="phone"><figcaption><b>1</b> First visit, asked once</figcaption>
+ <div class="scr">
+  <div class="top"><span class="brand">Coffee Run</span><span class="when">Fri 16 Oct</span></div>
+  <div class="body">
+   <p class="kicker">New phone</p>
+   <h4>Who's getting coffee?</h4>
+   <p class="hint">Type it once. This phone remembers you after that.</p>
+   <label for="${P}-name">Your name</label>
+   <input id="${P}-name" autocomplete="given-name" value="${esc(S.me)}">
+   <p class="hint">Already on the list? Tap yourself:</p>
+   <div class="chips who" data-r="people"></div>
+   <p class="note" data-r="joined" role="status"></p>
+   <button class="primary" data-act="join">Continue</button>
+  </div>
+ </div>
+</figure>
+<figure class="phone"><figcaption><b>2</b> Add an order</figcaption>
+ <div class="scr">
+  <div class="top"><span class="brand">Coffee Run</span><span class="me" data-r="me"></span></div>
+  <div class="body">
+   <button class="usual" data-act="usual" data-r="usual" hidden></button>
+   <div class="grp">
+    <label for="${P}-drink">Drink</label>
+    <div class="ac">
+     <input id="${P}-drink" placeholder="Start typing, e.g. flat" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="${P}-sugg" aria-expanded="false">
+     <ul id="${P}-sugg" class="sugg" role="listbox" data-r="sugg"></ul>
+    </div>
+   </div>
+   <div class="grp"><span class="lab">Size</span><div class="seg" data-r="size"></div></div>
+   <div class="grp"><span class="lab">Milk</span><div class="chips" data-r="milk"></div></div>
+   <div class="grp"><span class="lab">Extras</span><div class="chips" data-r="extras"></div></div>
+   <div class="preview" data-r="preview"></div>
+   <p class="note" data-r="added" role="status"></p>
+   <button class="primary" data-act="add" data-r="addbtn">Add my order</button>
+  </div>
+ </div>
+</figure>
+<figure class="phone"><figcaption><b>3</b> Master view: who ordered what</figcaption>
+ <div class="scr">
+  <div class="top daynav"><button data-act="prev" aria-label="Previous day">‹</button><span data-r="daylabel"></span><button data-act="next" aria-label="Next day">›</button></div>
+  <div class="body"><p class="count" data-r="count"></p><ul class="rows" data-r="rows"></ul></div>
+ </div>
+</figure>
+<figure class="phone"><figcaption><b>4</b> Master view: the clerk's docket</figcaption>
+ <div class="scr">
+  <div class="top"><span class="brand">For the counter</span><span class="when">Today</span></div>
+  <div class="body">
+   <div class="dockethead" data-r="dhead"></div>
+   <ul class="tally" data-r="tally"></ul>
+   <div class="total" data-r="total"></div>
+   <button class="ghost" data-act="copy">Copy as text</button>
+   <p class="note" data-r="copied" role="status"></p>
+  </div>
+ </div>
+</figure>`;
+  }
+
+  function mount(root) {
+    const P = root.dataset.design;
+    root.innerHTML = template(P);
+    const r = n => root.querySelector(`[data-r="${n}"]`);
+    const drinkInput = root.querySelector(`#${P}-drink`);
+    const nameInput = root.querySelector(`#${P}-name`);
+    const st = { day: 0, ticked: new Set(), draft: { q: "lat", drink: null, size: "Regular", milk: "Full cream", extras: [] }, open: true };
+    drinkInput.value = st.draft.q;
+
+    function renderPeople() {
+      r("people").innerHTML = S.people.map(p => `<button data-act="pick-person" data-v="${esc(p)}" aria-pressed="${p === S.me}">${esc(p)}</button>`).join("");
+    }
+    function renderSugg() {
+      const list = st.open && !st.draft.drink ? suggest(st.draft.q) : [];
+      drinkInput.setAttribute("aria-expanded", String(list.length > 0));
+      r("sugg").innerHTML = list.map(m => `<li role="option"><button data-act="pick" data-v="${esc(m.n)}"><span>${esc(m.n)}</span><small>${m.pop ? m.pop + " this week" : ""}</small></button></li>`).join("");
+    }
+    function renderOptions() {
+      const d = st.draft;
+      r("size").innerHTML = SIZES.map(s => `<button data-act="size" data-v="${s}" aria-pressed="${d.size === s}">${s}</button>`).join("");
+      const milkOk = !d.drink || hasMilk(d.drink);
+      r("milk").innerHTML = MILKS.map(m => `<button data-act="milk" data-v="${m}" aria-pressed="${milkOk && d.milk === m}" ${milkOk ? "" : "disabled"}>${m}</button>`).join("");
+      r("extras").innerHTML = EXTRAS.map(x => `<button data-act="extra" data-v="${x}" aria-pressed="${d.extras.includes(x)}">${x}</button>`).join("");
+      r("preview").innerHTML = d.drink ? esc(label(d)) : `<em>Pick a drink from the list</em>`;
+      const mine = today().orders.some(x => x.name === S.me);
+      const btn = r("addbtn");
+      btn.textContent = mine ? "Update my order" : "Add my order";
+      btn.disabled = !d.drink;
+    }
+    function renderMe() {
+      r("me").innerHTML = `<span>Ordering as </span><b>${esc(P === "B" ? S.me.slice(0, 2) : S.me)}</b>`;
+      r("me").title = "Ordering as " + S.me;
+      const y = myYesterday();
+      const u = r("usual");
+      if (y) {
+        u.hidden = false;
+        u.innerHTML = P === "B" ? `Same as yesterday?<strong>${esc(label(y))}</strong>` : `↻ Same as yesterday: ${esc(label(y))}`;
+      } else u.hidden = true;
+    }
+    function renderList() {
+      const day = S.days[st.day];
+      r("daylabel").textContent = st.day === 0 ? "Today · " + day.label : day.label;
+      root.querySelector('[data-act="prev"]').disabled = st.day === S.days.length - 1;
+      root.querySelector('[data-act="next"]').disabled = st.day === 0;
+      r("count").textContent = `${day.orders.length} orders${st.day ? " · read only" : ""}`;
+      r("rows").innerHTML = day.orders.map(x => {
+        const mine = x.name === S.me;
+        return `<li class="${mine ? "mine" : ""}"><span class="av" style="background:hsl(${hue(x.name)} 55% 68%)">${esc(x.name.slice(0, 2))}</span>` +
+          `<span class="tx"><span class="nm">${esc(x.name)}</span><span class="lead"></span><span class="dr">${esc(label(x))}</span></span>` +
+          `${mine ? '<span class="you">you</span>' : ""}</li>`;
+      }).join("");
+      if (P === "A") {
+        // Docket layout wants name, leader and drink as direct flex children
+        r("rows").querySelectorAll(".tx").forEach(t => t.replaceWith(...t.childNodes));
+      }
+    }
+    function renderTally() {
+      const g = grouped(today());
+      const cups = today().orders.length;
+      r("dhead").innerHTML = `<strong>DOCKET</strong>Fri 16 Oct · ${cups} cups`;
+      r("tally").innerHTML = g.map(([k, n]) => `<li><button data-act="tick" data-v="${esc(k)}" aria-pressed="${st.ticked.has(k)}"><span class="n">${n}</span><span class="l">${esc(k)}</span></button></li>`).join("");
+      const done = g.filter(([k]) => st.ticked.has(k)).reduce((a, [, n]) => a + n, 0);
+      r("total").innerHTML = `<span>Total ${cups} cups</span><span>${done} made</span>`;
+    }
+    function renderAll() { renderPeople(); renderMe(); renderSugg(); renderOptions(); renderList(); renderTally(); }
+
+    function pick(drink) {
+      st.draft.drink = drink; st.draft.q = drink; drinkInput.value = drink; st.open = false;
+      r("added").textContent = "";
+      renderSugg(); renderOptions();
+    }
+    function join(name) {
+      name = name.trim().replace(/\s+/g, " ");
+      if (!name) { r("joined").textContent = "Type a name first."; return; }
+      name = name.charAt(0).toUpperCase() + name.slice(1);
+      if (!S.people.includes(name)) S.people.push(name);
+      S.me = name;
+      nameInput.value = name;
+      refreshAll();
+      r("joined").textContent = `Saved. This phone is ${name}'s now.`;
+    }
+
+    drinkInput.addEventListener("input", () => {
+      st.draft.q = drinkInput.value;
+      const exact = MENU.find(m => m.n.toLowerCase() === drinkInput.value.trim().toLowerCase());
+      st.draft.drink = exact ? exact.n : null;
+      st.open = true;
+      renderSugg(); renderOptions();
+    });
+    drinkInput.addEventListener("focus", () => { st.open = true; renderSugg(); });
+    drinkInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") { const top = suggest(drinkInput.value)[0]; if (top) { e.preventDefault(); pick(top.n); } }
+      if (e.key === "Escape") { st.open = false; renderSugg(); }
+    });
+    nameInput.addEventListener("keydown", e => { if (e.key === "Enter") join(nameInput.value); });
+
+    root.addEventListener("click", e => {
+      const b = e.target.closest("button[data-act]");
+      if (!b || b.disabled) return;
+      const v = b.dataset.v, d = st.draft;
+      switch (b.dataset.act) {
+        case "join": join(nameInput.value); break;
+        case "pick-person": nameInput.value = v; join(v); break;
+        case "pick": pick(v); break;
+        case "size": d.size = v; renderOptions(); break;
+        case "milk": d.milk = v; renderOptions(); break;
+        case "extra": d.extras = d.extras.includes(v) ? d.extras.filter(x => x !== v) : [...d.extras, v]; renderOptions(); break;
+        case "usual": {
+          const y = myYesterday(); if (!y) break;
+          Object.assign(d, { drink: y.drink, q: y.drink, size: y.size, milk: y.milk, extras: [...y.extras] });
+          drinkInput.value = y.drink; st.open = false; renderSugg(); renderOptions(); break;
+        }
+        case "add": {
+          if (!d.drink) break;
+          const list = today().orders;
+          const entry = o(S.me, d.drink, d.size, hasMilk(d.drink) ? d.milk : "Full cream", [...d.extras]);
+          const i = list.findIndex(x => x.name === S.me);
+          const updated = i >= 0;
+          if (updated) list[i] = entry; else list.push(entry);
+          refreshAll();
+          r("added").textContent = updated ? "Updated. Check the list and the docket." : "Added. You're on today's list.";
+          break;
+        }
+        case "prev": st.day = Math.min(st.day + 1, S.days.length - 1); renderList(); break;
+        case "next": st.day = Math.max(st.day - 1, 0); renderList(); break;
+        case "tick": st.ticked.has(v) ? st.ticked.delete(v) : st.ticked.add(v); renderTally(); break;
+        case "copy": {
+          const text = grouped(today()).map(([k, n]) => `${n} × ${k}`).join("\n");
+          const out = r("copied");
+          try {
+            navigator.clipboard.writeText(text).then(
+              () => { out.textContent = "Copied the docket."; },
+              () => { out.textContent = text.replace(/\n/g, " · "); }
+            );
+          } catch (_) { out.textContent = text.replace(/\n/g, " · "); }
+          break;
+        }
+      }
+    });
+
+    renderAll();
+    return { refresh() { nameInput.value = S.me; renderPeople(); renderMe(); renderOptions(); renderList(); renderTally(); } };
+  }
+
+  function refreshAll() { designs.forEach(d => d.refresh()); }
+  document.querySelectorAll(".phones").forEach(el => designs.push(mount(el)));
+
+  document.querySelectorAll(".dots").forEach(el => {
+    const n = +el.dataset.n;
+    el.setAttribute("role", "img");
+    el.setAttribute("aria-label", n + " out of 5");
+    el.innerHTML = Array.from({ length: 5 }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("");
+  });
+})();
+</script>
