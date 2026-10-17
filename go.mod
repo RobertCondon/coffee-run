@@ -1,3 +1,3 @@
-module github.com/you/coffee-run
+module github.com/RobertCondon/coffee-run
 
 go 1.27.2
