@@ -1,30 +1,35 @@
 package main
 
 import (
-    "context"
-    "fmt"
-    "log"
-    "net/http"
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"time"
+	_ "time/tzdata"
 
-    "github.com/RobertCondon/coffee-run/db"
-  )
+	"github.com/RobertCondon/coffee-run/db"
+	"github.com/RobertCondon/coffee-run/internal/server"
+)
 
 func main() {
-	mux := http.NewServeMux()
+	loc, err := time.LoadLocation("Pacific/Auckland")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	mux.HandleFunc("GET /api/hello/{name}", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "kia ora, %s\n", r.PathValue("name"))
-	})
+	conn, err := db.Open("coffee-run.db")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	log.Println("listening on :8080")
-	conn, err := db.Open("coffee.db")
-    if err != nil {
-      log.Fatal(err)
-    }
-    if err := db.Migrate(context.Background(), conn); err != nil {
-      log.Fatal(err)
-    }
-    log.Println("migrated")
+	if err := db.Migrate(context.Background(), conn); err != nil {
+		log.Fatal(err)
+	}
 
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	srv := server.New(conn, loc, os.DirFS("web/dist"))
+
+	fmt.Println("Server is running on http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", srv))
 }
