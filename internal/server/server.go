@@ -22,7 +22,7 @@ func New(db *sql.DB, loc *time.Location, static fs.FS) *Server {
 	s.mux.HandleFunc("GET /api/session", s.handleMe)
 	s.mux.HandleFunc("POST /api/session", s.handleSession)
 	s.mux.HandleFunc("GET /api/sync", s.handleSync)
-	// s.mux.HandleFunc("POST /api/upload", s.handleUpload)
+	s.mux.HandleFunc("POST /api/upload", s.handleUpload)
 	// s.mux.HandleFunc("GET /api/events", s.handleEvents)
 	s.mux.Handle("GET /", http.FileServerFS(static))
 	return s
