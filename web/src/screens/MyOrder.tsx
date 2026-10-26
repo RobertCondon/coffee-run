@@ -51,59 +51,69 @@ export function MyOrder({ me }: { me: Person }) {
 
   if (menu === null || orders === null) return null // still loading
   if (menu.length === 0) {
-    return <p className="empty">No menu yet. It arrives with the first sync from the server.</p>
+    return <p className="body empty">No menu yet. It arrives with the first sync from the server.</p>
   }
 
   return (
-    <section>
+    <section className="body">
       {order && (
-        <div className="current">
+        <div className={order.version === 0 ? 'current' : 'current sent'}>
           <p className="label">{order.label}</p>
           <p className="status">{order.version === 0 ? 'Saved on this phone, sending…' : 'Sent ✓'}</p>
         </div>
       )}
 
       <form onSubmit={submit} className="order-form">
-        <label>Drink</label>
-        <div className="chips">
-          {menu.map((item) => (
-            <button type="button" key={item.id} className={form.menuItemID === item.id ? 'on' : ''}
-              onClick={() => update({ menuItemID: item.id })}>{item.name}</button>
-          ))}
+        <div>
+          <span className="lab">Drink</span>
+          <div className="chips">
+            {menu.map((item) => (
+              <button type="button" key={item.id} className={form.menuItemID === item.id ? 'on' : ''}
+                onClick={() => update({ menuItemID: item.id })}>{item.name}</button>
+            ))}
+          </div>
         </div>
 
-        <label>Size</label>
-        <div className="chips">
-          {SIZES.map((size) => (
-            <button type="button" key={size} className={form.size === size ? 'on' : ''}
-              onClick={() => update({ size })}>{size}</button>
-          ))}
+        <div>
+          <span className="lab">Size</span>
+          <div className="chips">
+            {SIZES.map((size) => (
+              <button type="button" key={size} className={form.size === size ? 'on' : ''}
+                onClick={() => update({ size })}>{size}</button>
+            ))}
+          </div>
         </div>
 
-        <label>Milk</label>
-        <div className="chips">
-          {MILKS.map((milk) => (
-            <button type="button" key={milk} className={form.milk === milk ? 'on' : ''}
-              onClick={() => update({ milk })}>{milk || 'none'}</button>
-          ))}
+        <div>
+          <span className="lab">Milk</span>
+          <div className="chips">
+            {MILKS.map((milk) => (
+              <button type="button" key={milk} className={form.milk === milk ? 'on' : ''}
+                onClick={() => update({ milk })}>{milk || 'none'}</button>
+            ))}
+          </div>
         </div>
 
-        <label>Extras</label>
-        <div className="chips">
-          {EXTRAS.map((extra) => (
-            <button type="button" key={extra} className={form.extras.includes(extra) ? 'on' : ''}
-              onClick={() => toggleExtra(extra)}>{extra}</button>
-          ))}
+        <div>
+          <span className="lab">Extras</span>
+          <div className="chips">
+            {EXTRAS.map((extra) => (
+              <button type="button" key={extra} className={form.extras.includes(extra) ? 'on' : ''}
+                onClick={() => toggleExtra(extra)}>{extra}</button>
+            ))}
+          </div>
         </div>
 
-        <label htmlFor="note">Note</label>
-        <input id="note" value={form.note} maxLength={80} placeholder="e.g. extra hot, half sugar"
-          onChange={(e) => update({ note: e.target.value })} />
+        <div>
+          <label className="lab" htmlFor="note">Note</label>
+          <input id="note" value={form.note} maxLength={80} placeholder="e.g. half sugar"
+            onChange={(e) => update({ note: e.target.value })} />
+        </div>
 
         <div className="actions">
-          <button className="primary" disabled={!form.menuItemID}>{order ? 'Update order' : 'Place order'}</button>
+          <button className="primary" disabled={!form.menuItemID}>{order ? 'Update my order' : 'Add my order'}</button>
           {order && (
-            <button type="button" className="danger" onClick={() => { setDraft(null); void db.call('cancelOrder', day) }}>
+            <button type="button" className="ghost danger" onClick={() => { setDraft(null); void db.call('cancelOrder', day) }}>
               Cancel order
             </button>
           )}

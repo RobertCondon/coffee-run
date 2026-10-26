@@ -1,19 +1,28 @@
 import { useEffect, useState } from 'react'
 import { whoAmI } from './api'
-import { db, startLiveSync } from './db/client'
+import { db, isLocked, onChange, retryOpen, startLiveSync } from './db/client'
 import { useQuery } from './db/useQuery'
 import type { Person } from './types'
 import { SignIn } from './screens/SignIn'
 import { MyOrder } from './screens/MyOrder'
 import { Docket } from './screens/Docket'
+import { Who } from './screens/Who'
 
-type Tab = 'order' | 'docket'
+type Tab = 'order' | 'who' | 'docket'
+
+const TABS: { tab: Tab; name: string }[] = [
+  { tab: 'order', name: 'My order' },
+  { tab: 'who', name: 'Who' },
+  { tab: 'docket', name: 'Docket' },
+]
 
 export default function App() {
   // Who you are lives in the phone's database, so the app still knows offline.
   const saved = useQuery<{ value: string }>(`SELECT value FROM meta WHERE key = 'me'`)
   const me: Person | null = saved?.[0] ? JSON.parse(saved[0].value) : null
   const [tab, setTab] = useState<Tab>('order')
+  const [locked, setLocked] = useState(isLocked())
+  useEffect(() => onChange(() => setLocked(isLocked())), [])
 
   // When the server can be reached, check with it. undefined means it couldn't
   // be reached: keep what we have.
@@ -30,21 +39,36 @@ export default function App() {
     if (signedIn) return startLiveSync()
   }, [signedIn])
 
+  // Without this a locked tab would sit blank: its queries were rejected.
+  if (locked) {
+    return (
+      <main className="locked">
+        <div className="top"><span className="brand">Coffee Run</span></div>
+        <div className="body">
+          <p>Coffee Run is open in another tab. Switch back to it, or close it.</p>
+          <button className="ghost" onClick={retryOpen}>Try again</button>
+        </div>
+      </main>
+    )
+  }
   if (saved === null) return null // the database is still opening
   if (!me) return <SignIn onSignedIn={saveMe} />
 
   return (
     <main>
-      <header>
-        <h1>Coffee Run</h1>
-        <span className="who">{me.name}</span>
+      <header className="top">
+        <span className="brand">Coffee Run</span>
+        <span className="me">Ordering as <b>{me.name}</b></span>
       </header>
       <nav>
-        <button className={tab === 'order' ? 'active' : ''} onClick={() => setTab('order')}>My order</button>
-        <button className={tab === 'docket' ? 'active' : ''} onClick={() => setTab('docket')}>Docket</button>
+        {TABS.map(({ tab: t, name }) => (
+          <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>{name}</button>
+        ))}
       </nav>
       <Notice />
-      {tab === 'order' ? <MyOrder me={me} /> : <Docket />}
+      {tab === 'order' && <MyOrder me={me} />}
+      {tab === 'who' && <Who me={me} />}
+      {tab === 'docket' && <Docket />}
     </main>
   )
 }

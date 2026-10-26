@@ -8,3 +8,9 @@ export function today(): string {
 export function orderID(day: string, personID: string): string {
   return `${day}:${personID}`
 }
+
+// "Tue 27 Oct" for a YYYY-MM-DD day. Noon UTC is the same date everywhere.
+export function formatDay(day: string): string {
+  return new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+    .format(new Date(`${day}T12:00:00Z`))
+}
