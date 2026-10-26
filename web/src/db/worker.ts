@@ -14,11 +14,12 @@ async function open(): Promise<Database> {
 
 const ready = open()
 
-// Pull, and tell the screens if anything arrived. Offline? Log it and carry
-// on: the next sync retries.
+// Push, then pull, telling the screens after each if anything changed.
+// Offline? Log it and carry on: the next sync retries.
 async function syncNow(): Promise<void> {
   const db = await ready
   try {
+    if (await sync.push(db)) changed()
     if (await sync.pull(db)) changed()
   } catch (error) {
     console.warn('sync failed, will retry', error)
@@ -28,8 +29,9 @@ async function syncNow(): Promise<void> {
 // Named functions the page can run inside the worker, with db.call(name).
 const calls = {
   sync: () => syncNow(),
-  placeOrder: async (order: OrderInput) => { sync.placeOrder(await ready, order); changed() },
-  cancelOrder: async (day: string) => { sync.cancelOrder(await ready, day); changed() },
+  // Save, show it, then try to send without making the button wait.
+  placeOrder: async (order: OrderInput) => { sync.placeOrder(await ready, order); changed(); void syncNow() },
+  cancelOrder: async (day: string) => { sync.cancelOrder(await ready, day); changed(); void syncNow() },
 }
 export type CallName = keyof typeof calls
 

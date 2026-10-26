@@ -1,5 +1,5 @@
 import type { Database } from '@sqlite.org/sqlite-wasm'
-import type { OrderInput, Person, SyncResponse } from '../types'
+import type { Op, OrderInput, Person, SyncResponse, UploadResponse } from '../types'
 import { orderID } from '../today'
 
 // This file runs inside the worker (worker.ts imports it), so it uses the
@@ -98,4 +98,39 @@ export function cancelOrder(db: Database, day: string) {
     db.exec(`INSERT INTO outbox (op, created_at) VALUES (?, ?)`,
       { bind: [JSON.stringify({ type: 'delete_order', order: { day } }), now] })
   })
+}
+
+// Send everything in the outbox, oldest first. Returns true if anything was
+// sent. A network error or a 500 throws, leaving the outbox for next time.
+export async function push(db: Database): Promise<boolean> {
+  const rows = db.selectObjects(`SELECT id, op FROM outbox ORDER BY id`) as { id: number; op: string }[]
+  if (rows.length === 0) return false
+
+  // The outbox row's id becomes the op's id, so results can be matched back.
+  const ops: Op[] = rows.map((row) => ({ ...JSON.parse(row.op), id: String(row.id) }))
+  const response = await fetch('/api/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ops }),
+  })
+  if (!response.ok) throw new Error(`upload: ${response.status}`)
+  const { results }: UploadResponse = await response.json()
+
+  db.transaction(() => {
+    for (const result of results) {
+      // Accepted or not, it leaves the outbox: a rejected op would fail the
+      // same way forever.
+      db.exec(`DELETE FROM outbox WHERE id = ?`, { bind: [Number(result.id)] })
+      const op = ops.find((o) => o.id === result.id)
+      if (!result.ok && op) {
+        // Show the server's reason, throw away this phone's unconfirmed copy,
+        // and pull everything again to get the server's copy back.
+        setMeta(db, 'notice', result.error ?? 'that change was rejected')
+        db.exec(`DELETE FROM coffee_order WHERE id = ? AND version = 0`,
+          { bind: [orderID(op.order.day, me(db).id)] })
+        setMeta(db, 'cursor', '0')
+      }
+    }
+  })
+  return true
 }

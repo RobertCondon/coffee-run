@@ -42,9 +42,21 @@ export default function App() {
         <button className={tab === 'order' ? 'active' : ''} onClick={() => setTab('order')}>My order</button>
         <button className={tab === 'docket' ? 'active' : ''} onClick={() => setTab('docket')}>Docket</button>
       </nav>
-      {/* STEP 9 adds <Notice /> here: the red bar for rejected changes. */}
+      <Notice />
       {tab === 'order' ? <MyOrder me={me} /> : <Docket />}
     </main>
+  )
+}
+
+// The red bar for a change the server rejected. It's just a row in meta:
+// tapping it deletes the row, and useQuery hides the bar.
+function Notice() {
+  const rows = useQuery<{ value: string }>(`SELECT value FROM meta WHERE key = 'notice'`)
+  if (!rows?.[0]) return null
+  return (
+    <p className="notice" onClick={() => db.exec(`DELETE FROM meta WHERE key = 'notice'`)}>
+      {rows[0].value} <span>✕</span>
+    </p>
   )
 }
 
