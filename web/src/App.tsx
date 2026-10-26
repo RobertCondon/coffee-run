@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { whoAmI } from './api'
-import { db } from './db/client'
+import { db, startLiveSync } from './db/client'
 import { useQuery } from './db/useQuery'
 import type { Person } from './types'
 import { SignIn } from './screens/SignIn'
@@ -23,10 +23,11 @@ export default function App() {
     })
   }, [])
 
-  // Sync once when signed in. STEP 10 replaces this with live sync.
+  // Live sync while signed in. React runs the function startLiveSync returns
+  // when signedIn changes or the app goes away.
   const signedIn = me !== null
   useEffect(() => {
-    if (signedIn) void db.call('sync')
+    if (signedIn) return startLiveSync()
   }, [signedIn])
 
   if (saved === null) return null // the database is still opening

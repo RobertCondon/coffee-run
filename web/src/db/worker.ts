@@ -14,16 +14,32 @@ async function open(): Promise<Database> {
 
 const ready = open()
 
+let running: Promise<void> | null = null
+let again = false
+
 // Push, then pull, telling the screens after each if anything changed.
-// Offline? Log it and carry on: the next sync retries.
+// Offline? Log it and carry on: the next sync retries. One sync at a time:
+// asking while one runs makes it go round once more, and everyone who asked
+// waits on the same promise.
 async function syncNow(): Promise<void> {
-  const db = await ready
-  try {
-    if (await sync.push(db)) changed()
-    if (await sync.pull(db)) changed()
-  } catch (error) {
-    console.warn('sync failed, will retry', error)
+  if (running) {
+    again = true
+    return running
   }
+  running = (async () => {
+    const db = await ready
+    do {
+      again = false
+      try {
+        if (await sync.push(db)) changed()
+        if (await sync.pull(db)) changed()
+      } catch (error) {
+        console.warn('sync failed, will retry', error)
+      }
+    } while (again)
+    running = null
+  })()
+  return running
 }
 
 // Named functions the page can run inside the worker, with db.call(name).

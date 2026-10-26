@@ -44,3 +44,46 @@ export function onChange(listener: () => void): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)
 }
+
+// Keep this phone in step with the server: sync on every ping from
+// /api/events, whenever the stream (re)connects, when the phone comes back
+// online or on screen, and once a minute just in case. Returns a function
+// that stops it all.
+export function startLiveSync(): () => void {
+  let events: EventSource
+  let retry: ReturnType<typeof setTimeout>
+  let delay = 1_000
+  const connect = () => {
+    events = new EventSource('/api/events')
+    events.addEventListener('changed', () => void db.call('sync'))
+    events.onopen = () => { delay = 1_000; void db.call('sync') }
+    events.onerror = () => {
+      // EventSource retries a dropped connection itself, but gives up for
+      // good on an error reply (a proxy's 502 while Go restarts).
+      if (events.readyState !== EventSource.CLOSED) return
+      retry = setTimeout(connect, delay)
+      delay = Math.min(delay * 2, 30_000)
+    }
+  }
+  connect()
+
+  // A phone that slept often has a dead stream that never said so.
+  const reconnect = () => {
+    if (document.visibilityState !== 'visible') return
+    events.close()
+    clearTimeout(retry)
+    delay = 1_000
+    connect()
+  }
+  window.addEventListener('online', reconnect)
+  document.addEventListener('visibilitychange', reconnect)
+  const timer = setInterval(() => void db.call('sync'), 60_000)
+
+  return () => {
+    events.close()
+    clearTimeout(retry)
+    window.removeEventListener('online', reconnect)
+    document.removeEventListener('visibilitychange', reconnect)
+    clearInterval(timer)
+  }
+}
