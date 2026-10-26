@@ -1,13 +1,15 @@
+import { useQuery } from '../db/useQuery'
 import { today } from '../today'
 
 // The clerk's view: today's orders tallied by drink, then who wants what.
 // Both come straight from db/views.sql, the same views the server has.
 export function Docket() {
   const day = today()
-  // STEP 6: read these from the views in db/views.sql with useQuery.
-  const tally: { label: string; qty: number }[] = []
-  const lines: { id: string; person: string; label: string; note: string | null }[] = []
-  void day
+  const tally = useQuery<{ label: string; qty: number }>(
+    `SELECT label, qty FROM v_tally WHERE day = ? ORDER BY qty DESC, label`, [day])
+  const lines = useQuery<{ id: string; person: string; label: string; note: string | null }>(
+    `SELECT id, person, label, note FROM v_coffee_order_line WHERE day = ? ORDER BY person`, [day])
+  if (tally === null || lines === null) return null // still loading
   if (lines.length === 0) return <p className="empty">No orders yet today.</p>
 
   const total = tally.reduce((sum, row) => sum + row.qty, 0)

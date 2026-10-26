@@ -19,6 +19,12 @@ export type Request =
 export type Response =
   | { id: number, ok: true, result: unknown }
   | { id: number, ok: false, error: string }
+  | { kind: 'changed' }
+
+// Tell the page "something changed", so every useQuery re-runs.
+function changed() {
+  postMessage({ kind: 'changed' })
+}
 
 onmessage = async (event: MessageEvent<Request>) => {
   const request = event.data
@@ -29,6 +35,7 @@ onmessage = async (event: MessageEvent<Request>) => {
       result = db.selectObjects(request.sql, request.params as never)
     } else {
       db.exec(request.sql, { bind: request.params as never })
+      changed()
     }
     postMessage({ id: request.id, ok: true, result })
   } catch (error) {

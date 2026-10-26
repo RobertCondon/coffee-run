@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { today } from '../today'
+import { useQuery } from '../db/useQuery'
+import { orderID, today } from '../today'
 import type { Person, SyncOrder } from '../types'
 
 const SIZES = ['small', 'regular', 'large']
@@ -11,11 +12,13 @@ type Form = { menuItemID: string; size: string; milk: string; extras: string[]; 
 const empty: Form = { menuItemID: '', size: 'regular', milk: '', extras: [], note: '' }
 
 export function MyOrder({ me }: { me: Person }) {
-  void me // STEP 6 uses this to find your order: orderID(day, me.id)
   const day = today()
-  // STEP 6: read these from the phone's database with useQuery.
-  const menu: { id: string; name: string }[] = []
-  const order = undefined as (SyncOrder & { label: string | null }) | undefined
+  const menu = useQuery<{ id: string; name: string }>(
+    `SELECT id, name FROM menu_item WHERE deleted_at IS NULL ORDER BY name`)
+  const orders = useQuery<SyncOrder & { label: string | null }>(
+    `SELECT o.*, l.label FROM coffee_order o LEFT JOIN v_coffee_order_line l ON l.id = o.id
+     WHERE o.id = ? AND o.deleted_at IS NULL`, [orderID(day, me.id)])
+  const order = orders?.[0]
 
   // draft is what the person is editing; null means "show the saved order".
   const [draft, setDraft] = useState<Form | null>(null)
@@ -46,6 +49,7 @@ export function MyOrder({ me }: { me: Person }) {
     setDraft(null)
   }
 
+  if (menu === null || orders === null) return null // still loading
   if (menu.length === 0) {
     return <p className="empty">No menu yet. It arrives with the first sync from the server.</p>
   }

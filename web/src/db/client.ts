@@ -5,8 +5,14 @@ const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'modu
 let nextId = 1
 const waiting = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>()
 
+const listeners = new Set<() => void>()
+
 worker.onmessage = (event: MessageEvent<Response>): void => {
   const message = event.data
+  if ('kind' in message) {
+    listeners.forEach((listener) => listener())
+    return
+  }
   const pending = waiting.get(message.id)
 
   waiting.delete(message.id)
@@ -31,3 +37,9 @@ export const db = {
 
 declare global { interface Window { db: typeof db } }
 if (import.meta.env.DEV) window.db = db
+
+// Call listener whenever the data changes. Returns a function that stops it.
+export function onChange(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
