@@ -7,9 +7,14 @@ const waiting = new Map<number, { resolve: (value: unknown) => void; reject: (er
 
 const listeners = new Set<() => void>()
 
+// True after the worker gave up because another tab holds the database. Any
+// changed message means it works again.
+let locked = false
+
 worker.onmessage = (event: MessageEvent<Response>): void => {
   const message = event.data
   if ('kind' in message) {
+    locked = message.kind === 'locked'
     listeners.forEach((listener) => listener())
     return
   }
@@ -34,6 +39,22 @@ export const db = {
   query: <T>(sql: string, params: unknown[] = []) => send({ kind: 'query', sql, params }) as Promise<T[]>,
   exec: (sql: string, params: unknown[] = []) => send({ kind: 'exec', sql, params }) as Promise<void>,
   call: (name: CallName, ...args: unknown[]) => send({ kind: 'call', name, args }),
+}
+
+// Workers can't see whether their tab is on screen, so tell it. Hidden covers
+// switching tabs, the home screen, locking the phone and closing the tab.
+function tellWorker() {
+  const kind = document.visibilityState === 'visible' ? 'resume' : 'pause'
+  worker.postMessage({ kind } satisfies Request)
+}
+document.addEventListener('visibilitychange', tellWorker)
+if (document.visibilityState !== 'visible') tellWorker() // opened in the background
+
+export const isLocked = () => locked
+
+// The Try again button: ask the worker to have another go at opening.
+export function retryOpen() {
+  worker.postMessage({ kind: 'resume' } satisfies Request)
 }
 
 declare global { interface Window { db: typeof db } }

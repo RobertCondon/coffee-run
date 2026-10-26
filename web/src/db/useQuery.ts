@@ -12,7 +12,7 @@ export function useQuery<T>(sql: string, params: unknown[] = []): T[] | null {
     const run = () =>
       db.query<T>(sql, JSON.parse(key)).then((result) => {
         if (live) setRows(result)
-      })
+      }, () => {}) // another tab has the database: App shows why, and changed re-runs this
     run()
     const stop = onChange(run)
     return () => {
