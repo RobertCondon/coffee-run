@@ -1,0 +1,20 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ master ]
+
+# Runs ON clanker via a self-hosted runner (outbound poll, no inbound SSH).
+# Builds the image locally and restarts the container via /opt/coffee-run/deploy.sh.
+jobs:
+  build_and_deploy:
+    runs-on: [self-hosted, clanker]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Build image locally
+        run: docker build -t coffee-run:latest .
+
+      - name: Deploy
+        run: /opt/coffee-run/deploy.sh

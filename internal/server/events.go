@@ -20,6 +20,7 @@ func (s *Server) handleEvents(responseWriter http.ResponseWriter, request *http.
 
 	responseWriter.Header().Set("Content-Type", "text/event-stream")
 	responseWriter.Header().Set("Cache-Control", "no-cache")
+	responseWriter.Header().Set("X-Accel-Buffering", "no") // tell nginx (the reverse proxy) not to buffer the stream
 	controller := http.NewResponseController(responseWriter)
 	controller.SetWriteDeadline(time.Time{})
 

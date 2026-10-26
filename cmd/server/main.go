@@ -19,7 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	conn, err := db.Open("coffee-run.db")
+	conn, err := db.Open(envOr("COFFEE_DB_PATH", "coffee-run.db"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,8 +28,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	srv := server.New(conn, loc, os.DirFS("web/dist"))
+	srv := server.New(conn, loc, os.DirFS(envOr("COFFEE_STATIC_DIR", "web/dist")))
 
-	fmt.Println("Server is running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", srv))
+	addr := envOr("COFFEE_ADDR", ":8080")
+	fmt.Printf("Server is running on http://localhost%s\n", addr)
+	log.Fatal(http.ListenAndServe(addr, srv))
+}
+
+// envOr reads an environment variable, falling back to the value used in
+// development. Docker sets all three (see Dockerfile); `go run` sets none.
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

@@ -1,0 +1,7 @@
+.git
+.idea
+web/node_modules
+web/dist
+*.db*
+*.html
+!web/index.html
