@@ -1,5 +1,5 @@
 import type { Database } from '@sqlite.org/sqlite-wasm'
-import type { Person, SyncResponse } from '../types'
+import type { OrderInput, Person, SyncResponse } from '../types'
 import { orderID } from '../today'
 
 // This file runs inside the worker (worker.ts imports it), so it uses the
@@ -59,4 +59,43 @@ export async function pull(db: Database): Promise<boolean> {
     setMeta(db, 'cursor', String(changes.cursor))
   })
   return changes.people.length + changes.menu_items.length + changes.orders.length > 0
+}
+
+// What validateOrder does to extras, so the phone shows the same label the
+// server will.
+function cleanExtras(extras: string[]): string[] {
+  const cleaned = extras.map((extra) => extra.trim().toLowerCase()).filter(Boolean)
+  return [...new Set(cleaned)].sort()
+}
+
+// Save the order here with version 0 ("not confirmed yet") and queue it for
+// the server. Both or neither: never an order without its outbox row.
+export function placeOrder(db: Database, order: OrderInput) {
+  const person = me(db)
+  const now = new Date().toISOString()
+  db.transaction(() => {
+    db.exec(`INSERT INTO coffee_order (id, day, person_id, menu_item_id, size, milk, extras, note,
+                                       status, updated_at, version, deleted_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'placed', ?, 0, NULL)
+             ON CONFLICT (id) DO UPDATE SET menu_item_id = excluded.menu_item_id, size = excluded.size,
+                                            milk = excluded.milk, extras = excluded.extras,
+                                            note = excluded.note, status = 'placed',
+                                            updated_at = excluded.updated_at, version = 0,
+                                            deleted_at = NULL`,
+      { bind: [orderID(order.day, person.id), order.day, person.id, order.menu_item_id,
+               order.size || 'regular', order.milk, JSON.stringify(cleanExtras(order.extras)), order.note, now] })
+    db.exec(`INSERT INTO outbox (op, created_at) VALUES (?, ?)`,
+      { bind: [JSON.stringify({ type: 'put_order', order }), now] })
+  })
+}
+
+// A tombstone, like the server's: the row stays, marked deleted, version 0.
+export function cancelOrder(db: Database, day: string) {
+  const now = new Date().toISOString()
+  db.transaction(() => {
+    db.exec(`UPDATE coffee_order SET deleted_at = ?, updated_at = ?, version = 0 WHERE id = ?`,
+      { bind: [now, now, orderID(day, me(db).id)] })
+    db.exec(`INSERT INTO outbox (op, created_at) VALUES (?, ?)`,
+      { bind: [JSON.stringify({ type: 'delete_order', order: { day } }), now] })
+  })
 }

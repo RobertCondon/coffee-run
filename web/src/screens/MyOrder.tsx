@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { db } from '../db/client'
 import { useQuery } from '../db/useQuery'
 import { orderID, today } from '../today'
 import type { Person, SyncOrder } from '../types'
@@ -37,8 +38,7 @@ export function MyOrder({ me }: { me: Person }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    // STEP 8: save it on the phone instead: await db.call('placeOrder', { ... })
-    console.log('placeOrder', {
+    await db.call('placeOrder', {
       day,
       menu_item_id: form.menuItemID,
       size: form.size,
@@ -103,7 +103,7 @@ export function MyOrder({ me }: { me: Person }) {
         <div className="actions">
           <button className="primary" disabled={!form.menuItemID}>{order ? 'Update order' : 'Place order'}</button>
           {order && (
-            <button type="button" className="danger" onClick={() => { setDraft(null); console.log('cancelOrder', day) /* STEP 8 */ }}>
+            <button type="button" className="danger" onClick={() => { setDraft(null); void db.call('cancelOrder', day) }}>
               Cancel order
             </button>
           )}

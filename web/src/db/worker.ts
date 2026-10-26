@@ -1,6 +1,7 @@
 import sqlite3InitModule, { type Database } from '@sqlite.org/sqlite-wasm'
 import { initializeDb } from './initializeDb'
 import * as sync from './sync'
+import type { OrderInput } from '../types'
 
 async function open(): Promise<Database> {
   const sqlite3 = await sqlite3InitModule()
@@ -25,7 +26,11 @@ async function syncNow(): Promise<void> {
 }
 
 // Named functions the page can run inside the worker, with db.call(name).
-const calls = { sync: () => syncNow() }
+const calls = {
+  sync: () => syncNow(),
+  placeOrder: async (order: OrderInput) => { sync.placeOrder(await ready, order); changed() },
+  cancelOrder: async (day: string) => { sync.cancelOrder(await ready, day); changed() },
+}
 export type CallName = keyof typeof calls
 
 export type Request =
