@@ -1,4 +1,4 @@
-import type { Request, Response } from './worker'
+import type { CallName, Request, Response } from './worker'
 
 const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })
 
@@ -33,6 +33,7 @@ function send(request: Unsent): Promise<unknown> {
 export const db = {
   query: <T>(sql: string, params: unknown[] = []) => send({ kind: 'query', sql, params }) as Promise<T[]>,
   exec: (sql: string, params: unknown[] = []) => send({ kind: 'exec', sql, params }) as Promise<void>,
+  call: (name: CallName, ...args: unknown[]) => send({ kind: 'call', name, args }),
 }
 
 declare global { interface Window { db: typeof db } }

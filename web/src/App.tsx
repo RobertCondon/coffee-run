@@ -23,7 +23,11 @@ export default function App() {
     })
   }, [])
 
-  // STEP 10 starts live sync here.
+  // Sync once when signed in. STEP 10 replaces this with live sync.
+  const signedIn = me !== null
+  useEffect(() => {
+    if (signedIn) void db.call('sync')
+  }, [signedIn])
 
   if (saved === null) return null // the database is still opening
   if (!me) return <SignIn onSignedIn={saveMe} />
