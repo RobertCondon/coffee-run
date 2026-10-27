@@ -31,8 +31,7 @@ export async function pull(db: Database): Promise<boolean> {
   // Orders still in the outbox were changed here and not sent yet: the
   // server's older copy mustn't overwrite them.
   const pending = new Set(
-    (db.selectValues(`SELECT json_extract(op, '$.order.day') FROM outbox`) as string[])
-      .map((day) => orderID(day, me(db).id)),
+    (db.selectObjects(`SELECT op FROM outbox`) as { op: string }[]).map((row) => opOrderID(db, JSON.parse(row.op))),
   )
 
   // Rows and cursor commit together, or not at all.
@@ -90,14 +89,29 @@ export function placeOrder(db: Database, order: OrderInput) {
 }
 
 // A tombstone, like the server's: the row stays, marked deleted, version 0.
-export function cancelOrder(db: Database, day: string) {
+// Anyone's order, yours by default. The op carries the version this phone
+// saw, so the server can refuse if its owner changed it since (Rails'
+// lock_version). 0, never confirmed, skips that check.
+export function cancelOrder(db: Database, day: string, personID = me(db).id) {
+  const id = orderID(day, personID)
   const now = new Date().toISOString()
   db.transaction(() => {
+    // Already gone here: nothing to send. Sending version 0 for it would
+    // skip the check and remove whatever the owner has ordered since.
+    const version = db.selectValue(`SELECT version FROM coffee_order WHERE id = ? AND deleted_at IS NULL`, [id]) as
+      number | undefined
+    if (version === undefined) return
     db.exec(`UPDATE coffee_order SET deleted_at = ?, updated_at = ?, version = 0 WHERE id = ?`,
-      { bind: [now, now, orderID(day, me(db).id)] })
+      { bind: [now, now, id] })
     db.exec(`INSERT INTO outbox (op, created_at) VALUES (?, ?)`,
-      { bind: [JSON.stringify({ type: 'delete_order', order: { day } }), now] })
+      { bind: [JSON.stringify({ type: 'delete_order', order: { day, person_id: personID, version } }), now] })
   })
+}
+
+// The order an op is about: someone else's if it's a delete naming them,
+// otherwise this phone's own (put_order never names anyone).
+function opOrderID(db: Database, op: { order: { day: string; person_id?: string } }): string {
+  return orderID(op.order.day, op.order.person_id || me(db).id)
 }
 
 // Send everything in the outbox, oldest first. Returns true if anything was
@@ -126,8 +140,7 @@ export async function push(db: Database): Promise<boolean> {
         // Show the server's reason, throw away this phone's unconfirmed copy,
         // and pull everything again to get the server's copy back.
         setMeta(db, 'notice', result.error ?? 'that change was rejected')
-        db.exec(`DELETE FROM coffee_order WHERE id = ? AND version = 0`,
-          { bind: [orderID(op.order.day, me(db).id)] })
+        db.exec(`DELETE FROM coffee_order WHERE id = ? AND version = 0`, { bind: [opOrderID(db, op)] })
         setMeta(db, 'cursor', '0')
       }
     }

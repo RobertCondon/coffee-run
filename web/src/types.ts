@@ -44,7 +44,7 @@ export type OrderInput = {
 
 export type Op =
   | { id: string; type: 'put_order'; order: OrderInput }
-  | { id: string; type: 'delete_order'; order: { day: string } }
+  | { id: string; type: 'delete_order'; order: { day: string; person_id?: string; version?: number } }
 
 export type OpResult = { id: string; ok: boolean; error?: string }
 

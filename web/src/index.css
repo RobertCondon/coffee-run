@@ -117,6 +117,21 @@ input::placeholder { color: var(--rule); }
 .rows .dr::first-letter { text-transform: uppercase; }
 .rows .dr small { display: block; color: var(--faint); font-size: 0.72rem; }
 .rows .mine .nm::after { content: " *"; color: var(--red); }
+.rows .x { background: transparent; border: 0; padding: 0 0 0 6px; color: var(--faint); font-size: 0.8rem; align-self: center; }
+.rows .x:hover { color: var(--red); }
+
+/* "Are you sure": a small ticket over the dimmed screen. */
+.confirm {
+  width: min(400px, calc(100% - 32px)); padding: 0;
+  background: var(--paper); color: var(--ink); border: 1px dashed var(--ink);
+}
+.confirm .inner { padding: 20px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.confirm::backdrop { background: rgb(35 37 31 / 0.6); }
+.confirm .drink { font-weight: 700; }
+.confirm .drink::first-letter { text-transform: uppercase; }
+.confirm .drink small { display: block; color: var(--faint); font-weight: 400; font-size: 0.75rem; }
+.confirm .actions { margin-top: 6px; }
+.primary.danger { background: var(--red); }
 
 /* The clerk's docket */
 .dockethead {

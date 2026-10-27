@@ -38,6 +38,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -57,10 +58,13 @@ type Op struct {
 // OrderInput is the order exactly as the phone sent it. Nothing in it is
 // trusted yet: validateOrder checks and tidies it.
 //
-// There's no person_id here on purpose. The server takes the person from the
-// session cookie, so nobody can place or delete someone else's order.
+// put_order always uses the person from the session cookie, so nobody can
+// order as someone else. delete_order may name another person: anyone can
+// take an order off the docket.
 type OrderInput struct {
 	Day        string   `json:"day"`
+	PersonID   string   `json:"person_id"` // delete_order only: whose order; "" means the sender
+	Version    int64    `json:"version"`   // delete_order only: the version the phone saw; 0 skips the check
 	MenuItemID string   `json:"menu_item_id"`
 	Size       string   `json:"size"`   // may be missing: "" means "regular"
 	Milk       *string  `json:"milk"`   // nil when the phone sends null or leaves it out
@@ -123,6 +127,12 @@ const deleteOrder = `
 	UPDATE coffee_order
 	SET deleted_at = ?, updated_at = ?, version = ?
 	WHERE id = ? AND deleted_at IS NULL`
+
+// deleteSeenOrder is deleteOrder with Rails' lock_version check: only delete
+// the order if nobody changed it since the phone last saw it.
+//
+// Five ?s: deleted_at, updated_at, version, id, the version the phone saw
+const deleteSeenOrder = deleteOrder + ` AND version = ?`
 
 // -----------------------------------------------------------------------------
 // WARM-UP: OrderID
@@ -209,12 +219,48 @@ func apply(ctx context.Context, tx *sql.Tx, sender person, op Op, today, now str
 		return attemptUpsertOrder(ctx, tx, orderID, input, sender, now, version)
 
 	case "delete_order":
-		_, err := tx.ExecContext(ctx, deleteOrder, now, now, version, orderID)
-		return "", err
+		return attemptDeleteOrder(ctx, tx, input, sender, now, version)
 
 	default:
 		return fmt.Sprintf("unknown op type %q", op.Type), nil
 	}
+}
+
+// attemptDeleteOrder removes the sender's order, or someone else's. Already
+// gone counts as done, so a retry or two people removing it at once is fine.
+// Changed since the phone saw it means the phone is out of date: reject.
+func attemptDeleteOrder(ctx context.Context, tx *sql.Tx, input OrderInput,
+	sender person, now string, version int64) (string, error) {
+	personID := input.PersonID
+	if personID == "" {
+		personID = sender.ID
+	}
+	orderID := OrderID(input.Day, personID)
+
+	if input.Version == 0 {
+		_, err := tx.ExecContext(ctx, deleteOrder, now, now, version, orderID)
+		return "", err
+	}
+	result, err := tx.ExecContext(ctx, deleteSeenOrder, now, now, version, orderID, input.Version)
+	if err != nil {
+		return "", err
+	}
+	if removed, err := result.RowsAffected(); err != nil || removed == 1 {
+		return "", err
+	}
+
+	var name string
+	err = tx.QueryRowContext(ctx,
+		`SELECT person.name FROM coffee_order JOIN person ON person.id = coffee_order.person_id
+		 WHERE coffee_order.id = ? AND coffee_order.deleted_at IS NULL`,
+		orderID).Scan(&name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil // already gone
+	}
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s changed their order, so it wasn't removed", name), nil
 }
 
 func attemptUpsertOrder(ctx context.Context, tx *sql.Tx, orderID string, input OrderInput,

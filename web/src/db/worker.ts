@@ -131,7 +131,7 @@ const calls = {
   sync: () => syncNow(),
   // Save, show it, then try to send without making the button wait.
   placeOrder: async (order: OrderInput) => { sync.placeOrder(await ready, order); changed(); void syncNow() },
-  cancelOrder: async (day: string) => { sync.cancelOrder(await ready, day); changed(); void syncNow() },
+  cancelOrder: async (day: string, personID?: string) => { sync.cancelOrder(await ready, day, personID); changed(); void syncNow() },
 }
 export type CallName = keyof typeof calls
 
