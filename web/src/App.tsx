@@ -7,20 +7,12 @@ import { SignIn } from './screens/SignIn'
 import { MyOrder } from './screens/MyOrder'
 import { Docket } from './screens/Docket'
 import { Who } from './screens/Who'
-
-type Tab = 'order' | 'who' | 'docket'
-
-const TABS: { tab: Tab; name: string }[] = [
-  { tab: 'order', name: 'My order' },
-  { tab: 'who', name: 'Who' },
-  { tab: 'docket', name: 'Docket' },
-]
+import { Tabs } from './Tabs'
 
 export default function App() {
   // Who you are lives in the phone's database, so the app still knows offline.
   const saved = useQuery<{ value: string }>(`SELECT value FROM meta WHERE key = 'me'`)
   const me: Person | null = saved?.[0] ? JSON.parse(saved[0].value) : null
-  const [tab, setTab] = useState<Tab>('order')
   const [locked, setLocked] = useState(isLocked())
   useEffect(() => onChange(() => setLocked(isLocked())), [])
 
@@ -55,20 +47,17 @@ export default function App() {
   if (!me) return <SignIn onSignedIn={saveMe} />
 
   return (
-    <main>
+    <main className="app">
       <header className="top">
         <span className="brand">Coffee Run</span>
         <span className="me">Ordering as <b>{me.name}</b></span>
       </header>
-      <nav>
-        {TABS.map(({ tab: t, name }) => (
-          <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>{name}</button>
-        ))}
-      </nav>
       <Notice />
-      {tab === 'order' && <MyOrder me={me} />}
-      {tab === 'who' && <Who me={me} />}
-      {tab === 'docket' && <Docket />}
+      <Tabs tabs={[
+        { name: 'My order', panel: <MyOrder me={me} /> },
+        { name: 'Who', panel: <Who me={me} /> },
+        { name: 'Docket', panel: <Docket /> },
+      ]} />
     </main>
   )
 }
