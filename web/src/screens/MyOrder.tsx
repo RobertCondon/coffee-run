@@ -6,7 +6,7 @@ import type { Person, SyncOrder } from '../types'
 
 const SIZES = ['small', 'regular', 'large']
 const MILKS = ['', 'full cream', 'trim', 'oat', 'soy', 'almond']
-const EXTRAS = ['extra shot', 'decaf', 'vanilla', 'caramel', 'hazelnut', 'extra hot']
+const EXTRAS = ['extra shot', 'decaf', 'vanilla', 'caramel', 'hazelnut']
 
 type Form = { menuItemID: string; size: string; milk: string; extras: string[]; note: string }
 
