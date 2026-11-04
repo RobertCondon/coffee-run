@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS person (
 CREATE TABLE IF NOT EXISTS menu_item (
     id         TEXT PRIMARY KEY,
     name       TEXT NOT NULL,
+    section    TEXT NOT NULL DEFAULT '', -- board group, e.g. Coffee, Frappes
+    sort_order INTEGER NOT NULL DEFAULT 0,
     version    INTEGER NOT NULL,
     deleted_at TEXT
 );

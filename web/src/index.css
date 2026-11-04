@@ -107,6 +107,11 @@ input {
 input:focus { outline: none; border-bottom-color: var(--red); }
 input::placeholder { color: var(--rule); }
 
+.menu { display: flex; flex-direction: column; gap: 14px; }
+.menu-section-title {
+  margin: 0 0 6px; font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink);
+}
 .chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .chips button { background: transparent; border: 1px solid var(--ink); padding: 4px 8px; font-size: 0.8rem; }
 /* Fingers need about 44px (Apple) or 48dp (Google) to hit reliably. */

@@ -45,7 +45,7 @@ import (
 // 1. syncPerson:   ID, Name, Version
 //      e.g.  ID string `json:"id"`
 //
-// 2. syncMenuItem: ID, Name, Version, DeletedAt (*string, `json:"deleted_at"`)
+// 2. syncMenuItem: ID, Name, Section, SortOrder, Version, DeletedAt (*string, `json:"deleted_at"`)
 //
 // 3. syncOrder:    ID, Day, PersonID, MenuItemID, Size, Milk (*string),
 //                  Extras (string — the JSON text as stored, e.g. "[]"),
@@ -71,6 +71,8 @@ type syncPerson struct {
 type syncMenuItem struct {
 	ID        string  `json:"id"`
 	Name      string  `json:"name"`
+	Section   string  `json:"section"`
+	SortOrder int64   `json:"sort_order"`
 	Version   int64   `json:"version"`
 	DeletedAt *string `json:"deleted_at"`
 }
@@ -135,7 +137,7 @@ const keepDays = 14
 //	     args: since
 //
 //	g) Fill response.MenuItems the same way:
-//	     SQL:  SELECT id, name, version, deleted_at FROM menu_item WHERE version > ?
+//	     SQL:  SELECT id, name, section, sort_order, version, deleted_at FROM menu_item WHERE version > ?
 //
 //	h) Fill response.Orders the same way, all 12 columns, in table order:
 //	     SQL:  SELECT id, day, person_id, …, deleted_at FROM coffee_order
@@ -214,10 +216,11 @@ func queryOrders(ctx context.Context, tx *sql.Tx, since int64, oldest string) ([
 // queryMenuItems returns every menu item changed since the given version,
 // including removed ones (deleted_at set), so phones learn they're gone.
 func queryMenuItems(ctx context.Context, tx *sql.Tx, since int64) ([]syncMenuItem, error) {
-	query := `SELECT id, name, version, deleted_at FROM menu_item WHERE version > ?`
+	query := `SELECT id, name, section, sort_order, version, deleted_at FROM menu_item WHERE version > ?`
 	return queryAll(ctx, tx, query,
 		func(rows *sql.Rows, menuItem *syncMenuItem) error {
-			return rows.Scan(&menuItem.ID, &menuItem.Name, &menuItem.Version, &menuItem.DeletedAt)
+			return rows.Scan(&menuItem.ID, &menuItem.Name, &menuItem.Section, &menuItem.SortOrder,
+				&menuItem.Version, &menuItem.DeletedAt)
 		},
 		since)
 }

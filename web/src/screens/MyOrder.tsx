@@ -9,13 +9,26 @@ const MILKS = ['', 'full cream', 'trim', 'oat', 'soy', 'almond']
 const EXTRAS = ['extra shot', 'decaf', 'vanilla', 'caramel', 'hazelnut']
 
 type Form = { menuItemID: string; size: string; milk: string; extras: string[]; note: string }
+type MenuRow = { id: string; name: string; section: string }
 
 const empty: Form = { menuItemID: '', size: 'regular', milk: '', extras: [], note: '' }
 
+// Board order, not alphabetical: sort_order keeps one section's drinks together.
+function groupBySection(rows: MenuRow[]): { section: string; items: MenuRow[] }[] {
+  const groups: { section: string; items: MenuRow[] }[] = []
+  for (const row of rows) {
+    const section = row.section || 'Other'
+    const last = groups.at(-1)
+    if (last?.section === section) last.items.push(row)
+    else groups.push({ section, items: [row] })
+  }
+  return groups
+}
+
 export function MyOrder({ me }: { me: Person }) {
   const day = today()
-  const menu = useQuery<{ id: string; name: string }>(
-    `SELECT id, name FROM menu_item WHERE deleted_at IS NULL ORDER BY name`)
+  const menu = useQuery<MenuRow>(
+    `SELECT id, name, section FROM menu_item WHERE deleted_at IS NULL ORDER BY sort_order, name`)
   const orders = useQuery<SyncOrder & { label: string | null }>(
     `SELECT o.*, l.label FROM coffee_order o LEFT JOIN v_coffee_order_line l ON l.id = o.id
      WHERE o.id = ? AND o.deleted_at IS NULL`, [orderID(day, me.id)])
@@ -66,10 +79,17 @@ export function MyOrder({ me }: { me: Person }) {
       <form onSubmit={submit} className="order-form">
         <div>
           <span className="lab">Drink</span>
-          <div className="chips">
-            {menu.map((item) => (
-              <button type="button" key={item.id} className={form.menuItemID === item.id ? 'on' : ''}
-                onClick={() => update({ menuItemID: item.id })}>{item.name}</button>
+          <div className="menu">
+            {groupBySection(menu).map((group) => (
+              <div key={group.section} className="menu-section">
+                <h2 className="menu-section-title">{group.section}</h2>
+                <div className="chips">
+                  {group.items.map((item) => (
+                    <button type="button" key={item.id} className={form.menuItemID === item.id ? 'on' : ''}
+                      onClick={() => update({ menuItemID: item.id })}>{item.name}</button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>

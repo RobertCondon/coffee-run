@@ -7,6 +7,8 @@ export type SyncPerson = Person & { version: number }
 export type SyncMenuItem = {
   id: string
   name: string
+  section: string
+  sort_order: number
   version: number
   deleted_at: string | null
 }

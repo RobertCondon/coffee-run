@@ -2,6 +2,8 @@
 
 Branch: `feature/presshouse-menu-expansion` (local only; not pushed).
 
+Sections are in. `menu_item.section` and `sort_order` sync to the phone, and My Order groups drinks under those headings. Migration `0003_menu_sections.sql` files the Presshouse drinks into Coffee, Tea, Iced coffee, Frappes, Smoothies, Milkshakes, Iced tea, and Fizzy. Flavours are separate drinks for now (no variant column yet). Hot-board tea flavours were not legible, so tea is a single drink. Size sets are still global: every drink offers small, regular, and large.
+
 Source: `menu.json` transcribed from `source-photo.jpg`.
 
 ## What Coffee-run has today

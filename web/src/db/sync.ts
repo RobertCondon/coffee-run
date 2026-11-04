@@ -42,10 +42,12 @@ export async function pull(db: Database): Promise<boolean> {
         { bind: [person.id, person.name, person.version] })
     }
     for (const item of changes.menu_items) {
-      db.exec(`INSERT INTO menu_item (id, name, version, deleted_at) VALUES (?, ?, ?, ?)
-               ON CONFLICT (id) DO UPDATE SET name = excluded.name, version = excluded.version,
+      db.exec(`INSERT INTO menu_item (id, name, section, sort_order, version, deleted_at)
+               VALUES (?, ?, ?, ?, ?, ?)
+               ON CONFLICT (id) DO UPDATE SET name = excluded.name, section = excluded.section,
+                                              sort_order = excluded.sort_order, version = excluded.version,
                                               deleted_at = excluded.deleted_at`,
-        { bind: [item.id, item.name, item.version, item.deleted_at] })
+        { bind: [item.id, item.name, item.section ?? '', item.sort_order ?? 0, item.version, item.deleted_at] })
     }
     for (const order of changes.orders) {
       if (pending.has(order.id)) continue
