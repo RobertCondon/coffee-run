@@ -89,7 +89,7 @@ export function MyOrder({ me }: { me: Person }) {
           <div className="chips">
             {MILKS.map((milk) => (
               <button type="button" key={milk} className={form.milk === milk ? 'on' : ''}
-                onClick={() => update({ milk })}>{milk || 'none'}</button>
+                onClick={() => update({ milk })}>{milk || 'regular'}</button>
             ))}
           </div>
         </div>
