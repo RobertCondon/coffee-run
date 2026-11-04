@@ -1,0 +1,386 @@
+{
+  "source": {
+    "cafe": "Presshouse Coffee",
+    "photo": "source-photo.jpg",
+    "extracted_at": "2026-11-05",
+    "notes": [
+      "Cold drinks board is clear; prices there are high confidence.",
+      "Hot drinks board is angled/blurry; prices marked confidence:approx need a second photo or till check.",
+      "Tea flavours on the hot board are not fully legible.",
+      "Prices are transcribed for completeness; Coffee-run does not currently store prices."
+    ]
+  },
+  "size_schemes": {
+    "hot_three": ["small", "regular", "large"],
+    "cold_two": ["regular", "large"],
+    "fixed": []
+  },
+  "modifiers": {
+    "alternative_milk": {
+      "options": ["almond", "coconut", "oat", "soy"],
+      "surcharge_nzd": 1.0,
+      "confidence": "approx",
+      "applies_to": "milk-based hot and cold drinks"
+    }
+  },
+  "boards": [
+    {
+      "id": "hot",
+      "title": "Hot Drinks",
+      "size_scheme": "hot_three",
+      "size_labels": {
+        "small": "Small (8oz)",
+        "regular": "Regular (12oz)",
+        "large": "Large (16oz)"
+      },
+      "sections": [
+        {
+          "id": "coffee",
+          "title": "Coffee",
+          "items": [
+            {
+              "id": "flat-white",
+              "name": "Flat White",
+              "prices": { "small": 5.6, "regular": 6.7, "large": 7.7 },
+              "confidence": "high",
+              "milk": true
+            },
+            {
+              "id": "cappuccino",
+              "name": "Cappuccino",
+              "prices": { "small": 5.6, "regular": 6.7, "large": 7.7 },
+              "confidence": "high",
+              "milk": true
+            },
+            {
+              "id": "mochaccino",
+              "name": "Mochaccino",
+              "prices": { "small": 5.6, "regular": 6.7, "large": 7.7 },
+              "confidence": "high",
+              "milk": true,
+              "aliases": ["Mocha"]
+            },
+            {
+              "id": "latte",
+              "name": "Latte",
+              "prices": { "small": 5.6, "regular": 6.7, "large": 7.7 },
+              "confidence": "medium",
+              "milk": true,
+              "price_note": "Some readings show latte higher (~6.30/7.40/8.50); confirm from till."
+            },
+            {
+              "id": "long-black-americano",
+              "name": "Long Black / Americano",
+              "subtitle": "Long Black (2 shots) / Americano (1 shot)",
+              "prices": { "small": 5.8, "regular": 6.9, "large": 7.9 },
+              "confidence": "high",
+              "milk": false,
+              "variants": [
+                { "id": "long-black", "name": "Long Black", "note": "2 shots" },
+                { "id": "americano", "name": "Americano", "note": "1 shot" }
+              ]
+            },
+            {
+              "id": "espresso",
+              "name": "Espresso",
+              "prices": { "fixed": 5.2 },
+              "size_scheme": "fixed",
+              "confidence": "approx",
+              "milk": false
+            },
+            {
+              "id": "macchiato",
+              "name": "Macchiato",
+              "prices": { "fixed": 5.0 },
+              "size_scheme": "fixed",
+              "confidence": "approx",
+              "milk": true,
+              "variants": [
+                { "id": "short", "name": "Short" },
+                { "id": "long", "name": "Long" }
+              ]
+            },
+            {
+              "id": "piccolo",
+              "name": "Piccolo",
+              "prices": { "fixed": 6.2 },
+              "size_scheme": "fixed",
+              "confidence": "approx",
+              "milk": true
+            },
+            {
+              "id": "affogato",
+              "name": "Affogato",
+              "subtitle": "Vanilla ice cream & espresso",
+              "prices": { "fixed": 6.2 },
+              "size_scheme": "fixed",
+              "confidence": "approx",
+              "milk": false
+            },
+            {
+              "id": "hot-chocolate",
+              "name": "Hot Chocolate",
+              "prices": { "fixed": 7.1 },
+              "size_scheme": "fixed",
+              "confidence": "approx",
+              "milk": true,
+              "price_note": "May actually be sized; confirm — board blur makes size columns ambiguous here."
+            },
+            {
+              "id": "specialty-latte",
+              "name": "Specialty Latte",
+              "prices": { "small": 6.1, "regular": 7.2, "large": 8.3 },
+              "confidence": "approx",
+              "milk": true,
+              "variants": [
+                { "id": "hazelnut", "name": "Hazelnut" },
+                { "id": "salted-caramel", "name": "Salted Caramel" },
+                { "id": "matcha-green-tea", "name": "Matcha Green Tea" },
+                { "id": "vanilla", "name": "Vanilla" },
+                { "id": "white-chocolate", "name": "White Chocolate" }
+              ]
+            },
+            {
+              "id": "chai-latte",
+              "name": "Chai Latte",
+              "prices": { "small": 6.8, "regular": 7.9, "large": 8.9 },
+              "confidence": "approx",
+              "milk": true,
+              "variants": [
+                { "id": "spicy", "name": "Spicy" },
+                { "id": "sweet", "name": "Sweet" }
+              ]
+            },
+            {
+              "id": "caramel-macchiato",
+              "name": "Caramel Macchiato",
+              "prices": { "small": 6.8, "regular": 7.9, "large": 8.9 },
+              "confidence": "approx",
+              "milk": true
+            },
+            {
+              "id": "white-mochaccino",
+              "name": "White Mochaccino",
+              "confidence": "low",
+              "milk": true,
+              "note": "Visible on hot board in some readings; prices not confirmed."
+            },
+            {
+              "id": "london-fog",
+              "name": "London Fog Latte",
+              "subtitle": "Caramel tea latte",
+              "confidence": "low",
+              "milk": true,
+              "note": "Visible on hot board in some readings; prices not confirmed."
+            }
+          ]
+        },
+        {
+          "id": "tea",
+          "title": "Tea",
+          "items": [
+            {
+              "id": "tea",
+              "name": "Tea",
+              "confidence": "low",
+              "milk": false,
+              "variants": [
+                { "id": "english-breakfast", "name": "English Breakfast" },
+                { "id": "earl-grey", "name": "Earl Grey" },
+                { "id": "green", "name": "Green Tea" },
+                { "id": "jasmine", "name": "Jasmine" },
+                { "id": "chamomile", "name": "Chamomile" },
+                { "id": "peppermint", "name": "Peppermint" },
+                { "id": "lemon", "name": "Lemon Tea" }
+              ],
+              "note": "Flavour list inferred from typical café boards; exact Presshouse set not fully legible."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cold",
+      "title": "Cold Drinks",
+      "size_scheme": "cold_two",
+      "size_labels": {
+        "regular": "Regular",
+        "large": "Large"
+      },
+      "sections": [
+        {
+          "id": "iced-coffee",
+          "title": "Iced Coffee",
+          "items": [
+            {
+              "id": "iced-coffee-latte",
+              "name": "Iced Coffee / Latte",
+              "prices": { "regular": 7.5, "large": 8.5 },
+              "confidence": "high",
+              "milk": true,
+              "variants": [
+                { "id": "iced-coffee", "name": "Iced Coffee" },
+                { "id": "iced-latte", "name": "Iced Latte" }
+              ]
+            },
+            {
+              "id": "iced-mocha",
+              "name": "Iced Mocha",
+              "prices": { "regular": 7.9, "large": 8.9 },
+              "confidence": "high",
+              "milk": true
+            },
+            {
+              "id": "iced-americano-long-black",
+              "name": "Iced Americano / Long Black",
+              "prices": { "regular": 6.5, "large": 6.9 },
+              "confidence": "high",
+              "milk": false,
+              "variants": [
+                { "id": "iced-americano", "name": "Iced Americano" },
+                { "id": "iced-long-black", "name": "Iced Long Black" }
+              ]
+            },
+            {
+              "id": "flavoured-iced-latte",
+              "name": "Flavoured Iced Latte",
+              "prices": { "regular": 7.9, "large": 8.9 },
+              "confidence": "high",
+              "milk": true,
+              "variants": [
+                { "id": "caramel", "name": "Caramel" },
+                { "id": "vanilla", "name": "Vanilla" },
+                { "id": "hazelnut", "name": "Hazelnut" },
+                { "id": "salted-caramel", "name": "Salted Caramel" },
+                { "id": "white-chocolate", "name": "White Chocolate" }
+              ]
+            },
+            {
+              "id": "iced-matcha",
+              "name": "Iced Matcha Green Tea Latte",
+              "prices": { "regular": 7.9, "large": 8.9 },
+              "confidence": "high",
+              "milk": true
+            },
+            {
+              "id": "iced-chai",
+              "name": "Iced Chai Latte",
+              "prices": { "regular": 7.9, "large": 8.9 },
+              "confidence": "high",
+              "milk": true,
+              "variants": [
+                { "id": "sweet", "name": "Sweet" },
+                { "id": "spicy", "name": "Spicy" }
+              ]
+            },
+            {
+              "id": "iced-chocolate",
+              "name": "Iced Chocolate",
+              "prices": { "regular": 7.9, "large": 8.9 },
+              "confidence": "high",
+              "milk": true,
+              "price_note": "One reading showed large at $8.50; $8.90 matches the iced mocha/chai row and is preferred."
+            }
+          ]
+        },
+        {
+          "id": "frappes",
+          "title": "Frappes",
+          "items": [
+            {
+              "id": "frappe",
+              "name": "Frappe",
+              "prices": { "regular": 8.7, "large": 9.7 },
+              "confidence": "high",
+              "milk": true,
+              "variants": [
+                { "id": "coffee", "name": "Coffee" },
+                { "id": "matcha-green-tea", "name": "Matcha Green Tea" },
+                { "id": "chai-sweet", "name": "Chai (Sweet)" },
+                { "id": "chai-spicy", "name": "Chai (Spicy)" },
+                { "id": "mocha", "name": "Mocha" },
+                { "id": "caramel", "name": "Caramel" },
+                { "id": "salted-caramel", "name": "Salted Caramel" },
+                { "id": "vanilla", "name": "Vanilla" },
+                { "id": "white-chocolate", "name": "White Chocolate" },
+                { "id": "chocolate", "name": "Chocolate" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "smoothies",
+          "title": "Real Fruit Smoothies",
+          "items": [
+            {
+              "id": "smoothie",
+              "name": "Smoothie",
+              "prices": { "regular": 8.7, "large": 9.7 },
+              "confidence": "high",
+              "milk": false,
+              "variants": [
+                { "id": "berry", "name": "Berry" },
+                { "id": "mango", "name": "Mango" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "milkshakes",
+          "title": "Milkshakes",
+          "items": [
+            {
+              "id": "milkshake",
+              "name": "Milkshake",
+              "prices": { "regular": 8.7, "large": 9.7 },
+              "confidence": "high",
+              "milk": false,
+              "variants": [
+                { "id": "chocolate", "name": "Chocolate" },
+                { "id": "caramel", "name": "Caramel" },
+                { "id": "vanilla", "name": "Vanilla" },
+                { "id": "banana", "name": "Banana" },
+                { "id": "strawberry", "name": "Strawberry" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "iced-tea",
+          "title": "Iced Tea",
+          "items": [
+            {
+              "id": "iced-tea",
+              "name": "Iced Tea",
+              "prices": { "regular": 7.9, "large": 8.5 },
+              "confidence": "high",
+              "milk": false,
+              "variants": [
+                { "id": "peach", "name": "Peach" },
+                { "id": "feijoa-lime", "name": "Feijoa & Lime" },
+                { "id": "chai", "name": "Chai" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fizzy",
+          "title": "Fizzy Iced Drinks",
+          "items": [
+            {
+              "id": "fizzy-iced",
+              "name": "Fizzy Iced Drink",
+              "prices": { "regular": 7.9, "large": 8.5 },
+              "confidence": "high",
+              "milk": false,
+              "variants": [
+                { "id": "passion-fruit", "name": "Passion Fruit" },
+                { "id": "strawberry", "name": "Strawberry" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
