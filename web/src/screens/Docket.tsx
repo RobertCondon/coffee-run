@@ -1,5 +1,6 @@
 import { useQuery } from '../db/useQuery'
 import { formatDay, today } from '../today'
+import { LoyaltyCard } from '../LoyaltyCard'
 
 // What the café's till calls each size.
 const SIZE_NAMES: Record<string, string> = { small: 'Small', regular: 'Medium', large: 'Large' }
@@ -55,6 +56,7 @@ export function Docket() {
           <div className="total"><span>Total items</span><span>{total}</span></div>
         </>
       )}
+      <LoyaltyCard />
     </section>
   )
 }

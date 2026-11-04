@@ -200,3 +200,27 @@ input::placeholder { color: var(--rule); }
 
 /* Another tab has the database */
 .locked .body { justify-content: center; text-align: center; }
+
+/* Loyalty card: the stub at the foot of the receipt, past a tear line. */
+.loyalty {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  margin-top: 18px; padding: 20px 0 4px; width: 100%;
+  background: transparent; border: 0; border-top: 1px dashed var(--rule); cursor: pointer;
+}
+.loyalty-lab { text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.7rem; font-weight: 700; }
+.loyalty-qr { display: block; width: min(62vw, 220px); aspect-ratio: 1; }
+.loyalty-qr svg { display: block; width: 100%; height: 100%; }
+.loyalty-code { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.32em; margin-right: -0.32em; }
+.loyalty-hint { color: var(--faint); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.65rem; }
+.loyalty:active .loyalty-qr { transform: scale(0.98); }
+
+.loyalty-full {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  background: #fff; color: #000; cursor: pointer;
+  animation: loyalty-in 160ms ease-out;
+}
+.loyalty-full .loyalty-qr { width: min(84vw, 70vh, 420px); }
+.loyalty-full .loyalty-code { font-size: 1.6rem; }
+@keyframes loyalty-in { from { opacity: 0; transform: scale(0.96); } }
+@media (prefers-reduced-motion: reduce) { .loyalty-full { animation: none; } }
