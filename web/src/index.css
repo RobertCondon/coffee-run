@@ -62,14 +62,14 @@ main.app { height: 100dvh; min-height: 0; padding-bottom: calc(16px + env(safe-a
   text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.75rem;
 }
 .brand {
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; gap: 4px;
   font-weight: 700; letter-spacing: 0.14em;
 }
-/* The gif is mostly empty space around the unicorn, so the box is 3.375rem (54px).
-   Symmetrical -1.125rem (-18px) vertical margins reduce its layout footprint to 18px
-   so it matches the text line height without expanding the header. */
+/* Unicorn gif is side-cropped to the figure (326×415). Width tracks that crop so
+   the unicorn stays the same size as the old 3.375rem square; height and vertical
+   margins are unchanged so the header line-height still matches. */
 .brand-icon {
-  width: 3.375rem; height: 3.375rem; flex-shrink: 0; object-fit: contain;
+  width: 2.531rem; height: 3.375rem; flex-shrink: 0; object-fit: contain;
   margin-block: -1.125rem;
   /* GIF content sits low-right in the frame; nudge so it reads centered on the wordmark. */
   transform: translate(-0.25rem, -0.3rem);
