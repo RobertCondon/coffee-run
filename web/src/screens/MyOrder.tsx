@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { db } from '../db/client'
 import { useQuery } from '../db/useQuery'
 import { tick } from '../haptics'
@@ -20,6 +20,7 @@ const CATEGORIES: { id: string; label: string; sections: string[] }[] = [
 
 type Form = { menuItemID: string; size: string; milk: string; flavour: string; extras: string[]; note: string }
 type MenuRow = { id: string; name: string; section: string; sizes: string; allows_milk: number | boolean; flavours: string }
+type FlavourCard = { itemId: string; flavours: string[]; phase: 'in' | 'out' }
 
 const empty: Form = { menuItemID: '', size: 'regular', milk: '', flavour: '', extras: [], note: '' }
 
@@ -97,6 +98,8 @@ export function MyOrder({ me }: { me: Person }) {
   const [draft, setDraft] = useState<Form | null>(null)
   // null until the person swipes or taps a category: until then, open on the drink they ordered.
   const [tabID, setTabID] = useState<string | null>(null)
+  // Kept mounted through 'out' so the flavour card can ease closed.
+  const [flavourCard, setFlavourCard] = useState<FlavourCard | null>(null)
   const stripRef = useRef<HTMLDivElement>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
   const underlineRef = useRef<HTMLSpanElement>(null)
@@ -290,7 +293,60 @@ export function MyOrder({ me }: { me: Person }) {
       el.removeEventListener('scroll', onScroll)
       el.removeEventListener('scrollend', settle)
     }
-  }, [menu, form.menuItemID])
+  }, [menu, form.menuItemID, flavourCard?.itemId, flavourCard?.phase])
+
+  // Open under the flavoured drink; when it loses flavour, play the close first.
+  useLayoutEffect(() => {
+    if (showFlavour && selected) {
+      setFlavourCard({ itemId: selected.id, flavours: offeredFlavours(selected), phase: 'in' })
+      return
+    }
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setFlavourCard(null)
+      return
+    }
+    setFlavourCard((card) => (card && card.phase !== 'out' ? { ...card, phase: 'out' } : card))
+  }, [showFlavour, form.menuItemID, selected?.id, selected?.flavours])
+
+  // Point the flavour card's caret at the drink chip sitting just above it.
+  useLayoutEffect(() => {
+    if (!flavourCard) return
+    const place = () => {
+      const card = document.querySelector<HTMLElement>('[data-flavour-card]')
+      const drink = card?.previousElementSibling
+      if (!card || !(drink instanceof HTMLElement)) return
+      const mid = drink.getBoundingClientRect().left + drink.offsetWidth / 2
+      const left = mid - card.getBoundingClientRect().left
+      const pad = 12
+      card.style.setProperty('--arrow-left', `${Math.max(pad, Math.min(card.clientWidth - pad, left))}px`)
+    }
+    place()
+    const observer = new ResizeObserver(place)
+    const card = document.querySelector('[data-flavour-card]')
+    if (card) observer.observe(card)
+    window.addEventListener('resize', place)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', place)
+    }
+  }, [flavourCard?.itemId, flavourCard?.phase, activeIndex])
+
+  // While the flavour card collapses, keep the strip height with it so no gap is left behind.
+  useEffect(() => {
+    if (flavourCard?.phase !== 'out') return
+    const el = stripRef.current
+    if (!el) return
+    let raf = 0
+    const follow = () => {
+      const menus = [...el.querySelectorAll<HTMLElement>('.cat-panel .menu')]
+      const i = Math.round(el.clientWidth ? el.scrollLeft / el.clientWidth : 0)
+      const height = menus[i]?.scrollHeight
+      if (height) el.style.height = `${1 + height}px`
+      raf = requestAnimationFrame(follow)
+    }
+    raf = requestAnimationFrame(follow)
+    return () => cancelAnimationFrame(raf)
+  }, [flavourCard?.phase])
 
   if (menu === null || orders === null) return null // still loading
   if (menu.length === 0) {
@@ -336,24 +392,36 @@ export function MyOrder({ me }: { me: Person }) {
                     <div key={group.section} className="menu-section">
                       {groups.length > 1 && <h2 className="menu-section-title">{group.section}</h2>}
                       <div className="chips">
-                        {group.items.map((item) => (
-                          <button type="button" key={item.id} className={form.menuItemID === item.id ? 'on' : ''}
-                            onClick={() => update({ menuItemID: item.id, ...fitDrink(item, form.size, form.milk, form.flavour) })}>
-                            {item.name}
-                          </button>
-                        ))}
+                        {group.items.map((item) => {
+                          const on = form.menuItemID === item.id
+                          return (
+                            <Fragment key={item.id}>
+                              <button type="button" className={on ? 'on' : ''}
+                                onClick={() => update({ menuItemID: item.id, ...fitDrink(item, form.size, form.milk, form.flavour) })}>
+                                {item.name}
+                              </button>
+                              {flavourCard?.itemId === item.id && (
+                                <div className="flavour-slot" data-flavour-card="" data-phase={flavourCard.phase}>
+                                  <div className="flavour" onAnimationEnd={(event) => {
+                                    if (event.target !== event.currentTarget) return
+                                    if (flavourCard.phase === 'out') setFlavourCard(null)
+                                  }}>
+                                    <span className="lab">Flavour</span>
+                                    <div className="chips">
+                                      {flavourCard.flavours.map((flavour) => (
+                                        <button type="button" key={flavour}
+                                          className={form.flavour === flavour ? 'on' : ''}
+                                          disabled={flavourCard.phase === 'out'}
+                                          onClick={() => update({ flavour })}>{flavour}</button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </Fragment>
+                          )
+                        })}
                       </div>
-                      {showFlavour && (selected?.section || 'Other') === group.section && (
-                        <div className="flavour">
-                          <span className="lab">Flavour</span>
-                          <div className="chips">
-                            {flavours.map((flavour) => (
-                              <button type="button" key={flavour} className={form.flavour === flavour ? 'on' : ''}
-                                onClick={() => update({ flavour })}>{flavour}</button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>

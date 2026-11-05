@@ -108,10 +108,59 @@ input:focus { outline: none; border-bottom-color: var(--red); }
 input::placeholder { color: var(--rule); }
 
 .menu { display: flex; flex-direction: column; gap: 14px; }
-.menu .flavour {
-  margin-top: 14px;
-  padding-top: 14px;
+/* Flavour sits on the next row under the chosen drink, not after the whole list.
+   Open: 0.5s from the caret. Close: 0.2s collapse, faded by 0.1s so no empty gap. */
+.chips > .flavour-slot {
+  flex: 0 0 100%;
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.chips > .flavour-slot > .flavour {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  margin: 4px 0 2px;
+  padding: 10px 12px;
+  border: 1px dashed var(--rule);
+  background: var(--paper);
+  transform-origin: top var(--arrow-left, 40%);
+  animation: flavour-in 500ms var(--spring) both;
+}
+.chips > .flavour-slot[data-phase="out"] {
+  animation: flavour-slot-out 200ms ease both;
+}
+.chips > .flavour-slot[data-phase="out"] > .flavour {
+  animation: flavour-out 200ms ease both;
+}
+.chips > .flavour-slot > .flavour::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: var(--arrow-left, 24px);
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  background: var(--paper);
+  border-left: 1px dashed var(--rule);
   border-top: 1px dashed var(--rule);
+  transform: translateX(-50%) rotate(45deg);
+}
+@keyframes flavour-in {
+  from { opacity: 0; transform: translateY(-6px) scaleY(0.88); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes flavour-slot-out {
+  from { grid-template-rows: 1fr; }
+  to { grid-template-rows: 0fr; }
+}
+@keyframes flavour-out {
+  0% { opacity: 1; transform: none; }
+  50% { opacity: 0; }
+  100% { opacity: 0; transform: translateY(-4px) scaleY(0.92); margin: 0; padding-top: 0; padding-bottom: 0; border-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chips > .flavour-slot,
+  .chips > .flavour-slot > .flavour { animation: none; }
 }
 .cat-tabs {
   position: sticky; top: 0; z-index: 1;
