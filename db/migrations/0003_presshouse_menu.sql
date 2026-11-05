@@ -47,8 +47,13 @@ WITH drinks (id, name, section, sort_order, sizes, allows_milk, flavours) AS (VA
         '["hazelnut","salted caramel","matcha green tea","vanilla","white chocolate"]'),
     ('caramel-macchiato', 'Caramel macchiato',            'Coffee',      150,
         '["small","regular","large"]', 1, '[]'),
+    ('white-mocha',       'White mocha',                  'Coffee',      160,
+        '["small","regular","large"]', 1, '[]'),
+    ('london-fog',        'London fog latte',             'Coffee',      170,
+        '["small","regular","large"]', 1, '[]'),
 
-    ('tea',               'Tea',                          'Tea',         210, '[]', 1, '[]'),
+    ('tea',               'Tea',                          'Tea',         210, '[]', 1,
+        '["breakfast","earl grey","forest berry","camomile","peppermint","green tea","lemon tea"]'),
 
     -- Cold board prices iced coffee and iced latte as one line.
     ('iced-coffee',       'Iced coffee / latte',          'Iced coffee', 310,
