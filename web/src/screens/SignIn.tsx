@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { signIn } from '../api'
+import unicorn from '../assets/unicorn.gif'
 import { formatDay, today } from '../today'
 import type { Person } from '../types'
 
@@ -24,7 +25,7 @@ export function SignIn({ onSignedIn }: { onSignedIn: (person: Person) => void })
   return (
     <main>
       <header className="top">
-        <span className="brand">Coffee Run</span>
+        <span className="brand"><img className="brand-icon" src={unicorn} alt="" />Coffee Run</span>
         <span className="when">{formatDay(today())}</span>
       </header>
       <form className="body" onSubmit={submit}>

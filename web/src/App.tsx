@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { whoAmI } from './api'
+import unicorn from './assets/unicorn.gif'
 import { db, isLocked, onChange, retryOpen, startLiveSync } from './db/client'
 import { useQuery } from './db/useQuery'
 import type { Person } from './types'
@@ -35,7 +36,7 @@ export default function App() {
   if (locked) {
     return (
       <main className="locked">
-        <div className="top"><span className="brand">Coffee Run</span></div>
+        <div className="top"><span className="brand"><img className="brand-icon" src={unicorn} alt="" />Coffee Run</span></div>
         <div className="body">
           <p>Coffee Run is open in another tab. Switch back to it, or close it.</p>
           <button className="ghost" onClick={retryOpen}>Try again</button>
@@ -49,7 +50,7 @@ export default function App() {
   return (
     <main className="app">
       <header className="top">
-        <span className="brand">Coffee Run</span>
+        <span className="brand"><img className="brand-icon" src={unicorn} alt="" />Coffee Run</span>
         <span className="me">Ordering as <b>{me.name}</b></span>
       </header>
       <Notice />

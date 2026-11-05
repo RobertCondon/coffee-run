@@ -56,12 +56,25 @@ main.app { height: 100dvh; min-height: 0; padding-bottom: calc(16px + env(safe-a
 @media (min-width: 560px) { main.app { height: calc(100dvh - 64px); min-height: 0; } }
 
 .top {
-  padding: calc(20px + env(safe-area-inset-top, 0px)) var(--gutter-r) 10px var(--gutter-l);
+  padding: calc(15px + env(safe-area-inset-top, 0px)) var(--gutter-r) 15px var(--gutter-l);
   border-bottom: 1px dashed var(--rule);
-  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
   text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.75rem;
 }
-.brand { font-weight: 700; letter-spacing: 0.14em; }
+.brand {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-weight: 700; letter-spacing: 0.14em;
+}
+/* The gif is mostly empty space around the unicorn, so the box is 3.375rem (54px).
+   Symmetrical -1.125rem (-18px) vertical margins reduce its layout footprint to 18px
+   so it matches the text line height without expanding the header. */
+.brand-icon {
+  width: 3.375rem; height: 3.375rem; flex-shrink: 0; object-fit: contain;
+  margin-block: -1.125rem;
+  /* GIF content sits low-right in the frame; nudge so it reads centered on the wordmark. */
+  transform: translate(-0.25rem, -0.3rem);
+  pointer-events: none;
+}
 .when, .me { color: var(--faint); }
 .me b { color: var(--ink); }
 
