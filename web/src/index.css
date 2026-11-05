@@ -109,14 +109,30 @@ input::placeholder { color: var(--rule); }
 
 .menu { display: flex; flex-direction: column; gap: 14px; }
 /* Flavour sits on the next row under the chosen drink, not after the whole list.
-   Open: 0.5s from the caret. Close: 0.2s collapse, faded by 0.1s so no empty gap. */
+   Open: 0.5s from the caret. Close: 0.2s collapse, faded by 0.1s so no empty gap.
+   The caret lives on the slot (not inside overflow:hidden) so it can sit on the border. */
 .chips > .flavour-slot {
   flex: 0 0 100%;
+  position: relative;
   display: grid;
   grid-template-rows: 1fr;
 }
+.chips > .flavour-slot::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: -1px;
+  left: var(--arrow-left, 24px);
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  background: var(--paper);
+  border-left: 1px dashed var(--rule);
+  border-top: 1px dashed var(--rule);
+  transform: translateX(-50%) rotate(45deg);
+  pointer-events: none;
+}
 .chips > .flavour-slot > .flavour {
-  position: relative;
   overflow: hidden;
   min-height: 0;
   margin: 4px 0 2px;
@@ -126,24 +142,20 @@ input::placeholder { color: var(--rule); }
   transform-origin: top var(--arrow-left, 40%);
   animation: flavour-in 500ms var(--spring) both;
 }
+.chips > .flavour-slot .chips button {
+  text-transform: capitalize;
+}
+.chips > .flavour-slot .chips button::first-letter {
+  text-transform: capitalize;
+}
 .chips > .flavour-slot[data-phase="out"] {
   animation: flavour-slot-out 200ms ease both;
 }
+.chips > .flavour-slot[data-phase="out"]::before {
+  animation: flavour-caret-out 100ms ease both;
+}
 .chips > .flavour-slot[data-phase="out"] > .flavour {
   animation: flavour-out 200ms ease both;
-}
-.chips > .flavour-slot > .flavour::before {
-  content: "";
-  position: absolute;
-  top: -6px;
-  left: var(--arrow-left, 24px);
-  width: 10px;
-  height: 10px;
-  box-sizing: border-box;
-  background: var(--paper);
-  border-left: 1px dashed var(--rule);
-  border-top: 1px dashed var(--rule);
-  transform: translateX(-50%) rotate(45deg);
 }
 @keyframes flavour-in {
   from { opacity: 0; transform: translateY(-6px) scaleY(0.88); }
@@ -158,8 +170,12 @@ input::placeholder { color: var(--rule); }
   50% { opacity: 0; }
   100% { opacity: 0; transform: translateY(-4px) scaleY(0.92); margin: 0; padding-top: 0; padding-bottom: 0; border-width: 0; }
 }
+@keyframes flavour-caret-out {
+  to { opacity: 0; }
+}
 @media (prefers-reduced-motion: reduce) {
   .chips > .flavour-slot,
+  .chips > .flavour-slot::before,
   .chips > .flavour-slot > .flavour { animation: none; }
 }
 .cat-tabs {

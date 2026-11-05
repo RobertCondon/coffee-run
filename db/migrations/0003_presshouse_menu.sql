@@ -53,7 +53,7 @@ WITH drinks (id, name, section, sort_order, sizes, allows_milk, flavours) AS (VA
         '["small","regular","large"]', 1, '[]'),
 
     ('tea',               'Tea',                          'Tea',         210, '[]', 1,
-        '["breakfast","earl grey","forest berry","camomile","peppermint","green tea","lemon tea"]'),
+        '["english breakfast","earl grey","forest berry","camomile","peppermint","green tea","lemon tea"]'),
 
     -- Cold board prices iced coffee and iced latte as one line.
     ('iced-coffee',       'Iced coffee / latte',          'Iced coffee', 310,
