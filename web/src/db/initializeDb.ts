@@ -10,6 +10,10 @@ export function initializeDb(db: Database): void {
   // on the old shape. Add the columns the order screen groups by.
   addColumnIfMissing(db, 'menu_item', 'section', `TEXT NOT NULL DEFAULT ''`)
   addColumnIfMissing(db, 'menu_item', 'sort_order', `INTEGER NOT NULL DEFAULT 0`)
+  addColumnIfMissing(db, 'menu_item', 'sizes', `TEXT NOT NULL DEFAULT '["small","regular","large"]'`)
+  addColumnIfMissing(db, 'menu_item', 'allows_milk', `INTEGER NOT NULL DEFAULT 1`)
+  addColumnIfMissing(db, 'menu_item', 'flavours', `TEXT NOT NULL DEFAULT '[]'`)
+  addColumnIfMissing(db, 'coffee_order', 'flavour', `TEXT`)
   db.exec(viewsSql)
 }
 
