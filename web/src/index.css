@@ -133,7 +133,7 @@ input::placeholder { color: var(--rule); }
 /* Drink lists side by side, snapped like My order / Who / Docket. A sideways
    swipe stays here instead of changing the page tab. */
 .cat-strip {
-  display: flex; overflow-x: auto; overflow-y: hidden;
+  display: flex; align-items: flex-start; overflow-x: auto; overflow-y: hidden;
   scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
   scrollbar-width: none;
   margin-left: calc(-1 * var(--gutter-l)); margin-right: calc(-1 * var(--gutter-r));

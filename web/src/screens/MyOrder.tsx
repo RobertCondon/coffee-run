@@ -156,13 +156,11 @@ export function MyOrder({ me }: { me: Person }) {
     let shrinkFrom = 0
     let shrinkTo = 0
     let shrinkStart = 0
-    let measured: number[] | null = null
-    const menuHeights = () => {
-      if (measured) return measured
-      measured = [...el.querySelectorAll<HTMLElement>('.cat-panel .menu')]
-        .map((menu) => Math.ceil(menu.getBoundingClientRect().height))
-      return measured
-    }
+    // scrollHeight is the whole list. The strip's own height must not be used
+    // here: once it is too short, a border-box measurement stays too short and
+    // the drinks underneath stay clipped.
+    const menuHeights = () => [...el.querySelectorAll<HTMLElement>('.cat-panel .menu')]
+      .map((menu) => menu.scrollHeight)
     // A page still in view needs its full height. It slides sideways; it does
     // not get shorter until it has left. The extra pixel keeps the last border.
     const covered = (pos: number) => {
@@ -270,9 +268,25 @@ export function MyOrder({ me }: { me: Person }) {
 
     el.addEventListener('scroll', onScroll, { passive: true })
     el.addEventListener('scrollend', settle)
+    // Wrapping changes when the strip gets narrower, and that makes the list taller.
+    // Ignore height-only changes: those are this effect setting the strip's height.
+    let width = el.clientWidth
+    const observer = new ResizeObserver(() => {
+      if (el.clientWidth === width) return
+      width = el.clientWidth
+      applied = -1
+      kick()
+    })
+    observer.observe(el)
+    document.fonts?.ready.then(() => {
+      if (!stripRef.current) return
+      applied = -1
+      kick()
+    })
     return () => {
       clearTimeout(timer)
       if (raf) cancelAnimationFrame(raf)
+      observer.disconnect()
       el.removeEventListener('scroll', onScroll)
       el.removeEventListener('scrollend', settle)
     }
