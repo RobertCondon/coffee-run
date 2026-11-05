@@ -41,6 +41,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 )
 
@@ -66,9 +67,10 @@ type OrderInput struct {
 	PersonID   string   `json:"person_id"` // delete_order only: whose order; "" means the sender
 	Version    int64    `json:"version"`   // delete_order only: the version the phone saw; 0 skips the check
 	MenuItemID string   `json:"menu_item_id"`
-	Size       string   `json:"size"`   // may be missing: "" means "regular"
-	Milk       *string  `json:"milk"`   // nil when the phone sends null or leaves it out
-	Extras     []string `json:"extras"` // a real list here; stored as JSON text
+	Size       string   `json:"size"`    // may be missing: "" means "regular"
+	Milk       *string  `json:"milk"`    // nil when the phone sends null or leaves it out
+	Flavour    *string  `json:"flavour"` // nil when the drink has no flavour list
+	Extras     []string `json:"extras"`  // a real list here; stored as JSON text
 	Note       *string  `json:"note"`
 }
 
@@ -100,17 +102,18 @@ type uploadResponse struct {
 //
 // deleted_at = NULL means ordering again after cancelling brings the row back.
 //
-// Ten ?s, in this order:
+// Eleven ?s, in this order:
 //
-//	id, day, person_id, menu_item_id, size, milk, extras, note, updated_at, version
+//	id, day, person_id, menu_item_id, size, milk, flavour, extras, note, updated_at, version
 const upsertOrder = `
 	INSERT INTO coffee_order
-	  (id, day, person_id, menu_item_id, size, milk, extras, note, updated_at, version)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	  (id, day, person_id, menu_item_id, size, milk, flavour, extras, note, updated_at, version)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT (id) DO UPDATE SET
 	  menu_item_id = excluded.menu_item_id,
 	  size         = excluded.size,
 	  milk         = excluded.milk,
+	  flavour      = excluded.flavour,
 	  extras       = excluded.extras,
 	  note         = excluded.note,
 	  status       = 'placed',
@@ -263,25 +266,63 @@ func attemptDeleteOrder(ctx context.Context, tx *sql.Tx, input OrderInput,
 	return fmt.Sprintf("%s changed their order, so it wasn't removed", name), nil
 }
 
+// drinkOptions rejects a size, milk, or flavour the café doesn't offer for this drink.
+func drinkOptions(ctx context.Context, tx *sql.Tx, cleaned cleanOrder) (string, error) {
+	var sizesJSON, flavoursJSON string
+	var allowsMilk int
+	err := tx.QueryRowContext(ctx,
+		`SELECT sizes, allows_milk, flavours FROM menu_item WHERE id = ? AND deleted_at IS NULL`,
+		cleaned.MenuItemID).Scan(&sizesJSON, &allowsMilk, &flavoursJSON)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "that drink isn't on the menu", nil
+	}
+	if err != nil {
+		return "", err
+	}
+
+	var offered []string
+	if err := json.Unmarshal([]byte(sizesJSON), &offered); err != nil {
+		return "", err
+	}
+	if len(offered) == 0 {
+		if cleaned.Size != "regular" {
+			return "that drink doesn't come in a size", nil
+		}
+	} else if !slices.Contains(offered, cleaned.Size) {
+		return "that drink doesn't come in that size", nil
+	}
+	if allowsMilk == 0 && cleaned.Milk != nil {
+		return "that drink doesn't take milk", nil
+	}
+
+	var flavours []string
+	if err := json.Unmarshal([]byte(flavoursJSON), &flavours); err != nil {
+		return "", err
+	}
+	if len(flavours) == 0 {
+		if cleaned.Flavour != nil {
+			return "that drink doesn't come in a flavour", nil
+		}
+	} else if cleaned.Flavour == nil {
+		return "pick a flavour", nil
+	} else if !slices.Contains(flavours, *cleaned.Flavour) {
+		return "that drink doesn't come in that flavour", nil
+	}
+	return "", nil
+}
+
 func attemptUpsertOrder(ctx context.Context, tx *sql.Tx, orderID string, input OrderInput,
 	sender person, now string, version int64) (string, error) {
 	cleaned, reason := validateOrder(input)
 	if reason != "" {
 		return reason, nil
 	}
-	var onMenu bool
-	err := tx.QueryRowContext(ctx,
-		`SELECT EXISTS (SELECT 1 FROM menu_item WHERE id = ? AND deleted_at IS NULL)`,
-		cleaned.MenuItemID).Scan(&onMenu)
-	if err != nil {
-		return "", err
+	if reason, err := drinkOptions(ctx, tx, cleaned); reason != "" || err != nil {
+		return reason, err
 	}
-	if !onMenu {
-		return "that drink isn't on the menu", nil
-	}
-	_, err = tx.ExecContext(ctx, upsertOrder,
+	_, err := tx.ExecContext(ctx, upsertOrder,
 		orderID, input.Day, sender.ID, cleaned.MenuItemID, cleaned.Size,
-		cleaned.Milk, cleaned.ExtrasJSON, cleaned.Note, now, version)
+		cleaned.Milk, cleaned.Flavour, cleaned.ExtrasJSON, cleaned.Note, now, version)
 	return "", err
 }
 

@@ -42,18 +42,23 @@ export async function pull(db: Database): Promise<boolean> {
         { bind: [person.id, person.name, person.version] })
     }
     for (const item of changes.menu_items) {
-      db.exec(`INSERT INTO menu_item (id, name, version, deleted_at) VALUES (?, ?, ?, ?)
-               ON CONFLICT (id) DO UPDATE SET name = excluded.name, version = excluded.version,
-                                              deleted_at = excluded.deleted_at`,
-        { bind: [item.id, item.name, item.version, item.deleted_at] })
+      db.exec(`INSERT INTO menu_item (id, name, section, sort_order, sizes, allows_milk, flavours, version, deleted_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT (id) DO UPDATE SET name = excluded.name, section = excluded.section,
+                                              sort_order = excluded.sort_order, sizes = excluded.sizes,
+                                              allows_milk = excluded.allows_milk, flavours = excluded.flavours,
+                                              version = excluded.version, deleted_at = excluded.deleted_at`,
+        { bind: [item.id, item.name, item.section ?? '', item.sort_order ?? 0,
+                 item.sizes ?? '["small","regular","large"]', item.allows_milk ? 1 : 0,
+                 item.flavours ?? '[]', item.version, item.deleted_at] })
     }
     for (const order of changes.orders) {
       if (pending.has(order.id)) continue
       db.exec(`INSERT OR REPLACE INTO coffee_order
-                 (id, day, person_id, menu_item_id, size, milk, extras, note, status, updated_at, version, deleted_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                 (id, day, person_id, menu_item_id, size, milk, flavour, extras, note, status, updated_at, version, deleted_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         { bind: [order.id, order.day, order.person_id, order.menu_item_id, order.size, order.milk,
-                 order.extras, order.note, order.status, order.updated_at, order.version, order.deleted_at] })
+                 order.flavour, order.extras, order.note, order.status, order.updated_at, order.version, order.deleted_at] })
     }
     setMeta(db, 'cursor', String(changes.cursor))
   })
@@ -73,16 +78,17 @@ export function placeOrder(db: Database, order: OrderInput) {
   const person = me(db)
   const now = new Date().toISOString()
   db.transaction(() => {
-    db.exec(`INSERT INTO coffee_order (id, day, person_id, menu_item_id, size, milk, extras, note,
+    db.exec(`INSERT INTO coffee_order (id, day, person_id, menu_item_id, size, milk, flavour, extras, note,
                                        status, updated_at, version, deleted_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'placed', ?, 0, NULL)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'placed', ?, 0, NULL)
              ON CONFLICT (id) DO UPDATE SET menu_item_id = excluded.menu_item_id, size = excluded.size,
-                                            milk = excluded.milk, extras = excluded.extras,
-                                            note = excluded.note, status = 'placed',
+                                            milk = excluded.milk, flavour = excluded.flavour,
+                                            extras = excluded.extras, note = excluded.note, status = 'placed',
                                             updated_at = excluded.updated_at, version = 0,
                                             deleted_at = NULL`,
       { bind: [orderID(order.day, person.id), order.day, person.id, order.menu_item_id,
-               order.size || 'regular', order.milk, JSON.stringify(cleanExtras(order.extras)), order.note, now] })
+               order.size || 'regular', order.milk, order.flavour,
+               JSON.stringify(cleanExtras(order.extras)), order.note, now] })
     db.exec(`INSERT INTO outbox (op, created_at) VALUES (?, ?)`,
       { bind: [JSON.stringify({ type: 'put_order', order }), now] })
   })

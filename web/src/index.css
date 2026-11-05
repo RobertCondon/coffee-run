@@ -107,6 +107,112 @@ input {
 input:focus { outline: none; border-bottom-color: var(--red); }
 input::placeholder { color: var(--rule); }
 
+.menu { display: flex; flex-direction: column; gap: 14px; }
+/* Flavour sits on the next row under the chosen drink, not after the whole list.
+   Open: 0.5s from the caret. Close: 0.2s collapse, faded by 0.1s so no empty gap.
+   The caret lives on the slot (not inside overflow:hidden) so it can sit on the border. */
+.chips > .flavour-slot {
+  flex: 0 0 100%;
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.chips > .flavour-slot::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: -1px;
+  left: var(--arrow-left, 24px);
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  background: var(--paper);
+  border-left: 1px dashed var(--rule);
+  border-top: 1px dashed var(--rule);
+  transform: translateX(-50%) rotate(45deg);
+  pointer-events: none;
+}
+.chips > .flavour-slot > .flavour {
+  overflow: hidden;
+  min-height: 0;
+  margin: 4px 0 2px;
+  padding: 10px 12px;
+  border: 1px dashed var(--rule);
+  background: var(--paper);
+  transform-origin: top var(--arrow-left, 40%);
+  animation: flavour-in 500ms var(--spring) both;
+}
+.chips > .flavour-slot .chips button {
+  text-transform: capitalize;
+}
+.chips > .flavour-slot .chips button::first-letter {
+  text-transform: capitalize;
+}
+.chips > .flavour-slot[data-phase="out"] {
+  animation: flavour-slot-out 200ms ease both;
+}
+.chips > .flavour-slot[data-phase="out"]::before {
+  animation: flavour-caret-out 100ms ease both;
+}
+.chips > .flavour-slot[data-phase="out"] > .flavour {
+  animation: flavour-out 200ms ease both;
+}
+@keyframes flavour-in {
+  from { opacity: 0; transform: translateY(-6px) scaleY(0.88); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes flavour-slot-out {
+  from { grid-template-rows: 1fr; }
+  to { grid-template-rows: 0fr; }
+}
+@keyframes flavour-out {
+  0% { opacity: 1; transform: none; }
+  50% { opacity: 0; }
+  100% { opacity: 0; transform: translateY(-4px) scaleY(0.92); margin: 0; padding-top: 0; padding-bottom: 0; border-width: 0; }
+}
+@keyframes flavour-caret-out {
+  to { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chips > .flavour-slot,
+  .chips > .flavour-slot::before,
+  .chips > .flavour-slot > .flavour { animation: none; }
+}
+.cat-tabs {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; overflow-x: auto; scrollbar-width: none;
+  background: var(--paper); border-bottom: 1px dashed var(--rule);
+  margin: -18px calc(-1 * var(--gutter-r)) 0 calc(-1 * var(--gutter-l));
+}
+.cat-tabs::-webkit-scrollbar { display: none; }
+.cat-tabs button {
+  flex: 0 0 auto; background: transparent; border: 0;
+  padding: 12px 12px 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: 0.68rem; color: var(--faint);
+}
+.cat-tabs button[aria-selected="true"] { color: var(--ink); font-weight: 700; }
+/* Same mark as the page tabs: it slides with the finger instead of jumping. */
+.cat-tabs .underline {
+  position: absolute; left: 0; bottom: 0; height: 2px; background: var(--ink); pointer-events: none;
+}
+/* Drink lists side by side, snapped like My order / Who / Docket. A sideways
+   swipe stays here instead of changing the page tab. */
+.cat-strip {
+  display: flex; align-items: flex-start; overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  margin-left: calc(-1 * var(--gutter-l)); margin-right: calc(-1 * var(--gutter-r));
+}
+.cat-strip::-webkit-scrollbar { display: none; }
+.cat-panel {
+  flex: 0 0 100%; min-width: 0; box-sizing: border-box;
+  padding: 0 var(--gutter-l);
+  scroll-snap-align: start; scroll-snap-stop: always;
+}
+.menu-section-title {
+  margin: 0 0 6px; font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink);
+}
 .chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .chips button { background: transparent; border: 1px solid var(--ink); padding: 4px 8px; font-size: 0.8rem; }
 /* Fingers need about 44px (Apple) or 48dp (Google) to hit reliably. */
@@ -139,6 +245,10 @@ input::placeholder { color: var(--rule); }
 .current.sent { border-color: var(--rule); }
 .current.sent .status { color: var(--faint); }
 .order-form { display: flex; flex-direction: column; gap: 14px; }
+.options {
+  display: flex; flex-direction: column; gap: 14px;
+  border-top: 1px dashed var(--rule); padding-top: 14px;
+}
 .actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 
 /* Who ordered what: name, dotted leader, drink. Each row is two layers:

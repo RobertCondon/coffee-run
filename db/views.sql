@@ -11,7 +11,9 @@ SELECT
     coffee_order.id,
     menu_item.name AS drink,
     coffee_order.size,
+    menu_item.sizes,
     coffee_order.milk,
+    coffee_order.flavour,
     coffee_order.extras,
     coffee_order.note
 FROM coffee_order AS coffee_order
@@ -28,6 +30,7 @@ SELECT
     person.name AS person,
     CASE coffee_order.size WHEN 'regular' THEN '' ELSE coffee_order.size || ' ' END
         || COALESCE(coffee_order.milk || ' ', '')
+        || COALESCE(coffee_order.flavour || ' ', '')
         || lower(menu_item.name)
         || COALESCE((SELECT ' + ' || group_concat(e.value, ' + ')
                      FROM json_each(coffee_order.extras) AS e), '') AS label,

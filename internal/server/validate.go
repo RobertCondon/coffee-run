@@ -29,11 +29,20 @@ type cleanOrder struct {
 	MenuItemID string
 	Size       string
 	Milk       *string
+	Flavour    *string
 	Note       *string
 	ExtrasJSON string // ready for the extras column, e.g. ["extra shot","vanilla"]
 }
 
-// DONE FOR YOU: trimOrNil trims spaces, and turns "nothing left" into nil,
+func lowerOrNil(text *string) *string {
+	if text == nil {
+		return nil
+	}
+	lower := strings.ToLower(*text)
+	return &lower
+}
+
+// trimOrNil trims spaces, and turns "nothing left" into nil,
 // so " oat " is saved as "oat" and "   " is saved as NULL.
 func trimOrNil(text *string) *string {
 	if text == nil {
@@ -95,49 +104,50 @@ func trimOrNil(text *string) *string {
 
 func validateOrder(input OrderInput) (cleanOrder, string) {
 	cleaned := cleanOrder{
-	    MenuItemID: input.MenuItemID,
-        Size:       input.Size,
-        Milk:       trimOrNil(input.Milk),
-        Note:       trimOrNil(input.Note),
-    }
+		MenuItemID: input.MenuItemID,
+		Size:       input.Size,
+		Milk:       trimOrNil(input.Milk),
+		Flavour:    lowerOrNil(trimOrNil(input.Flavour)),
+		Note:       trimOrNil(input.Note),
+	}
 
-    if cleaned.MenuItemID == "" {
-        return cleaned, "pick a drink"
-    }
+	if cleaned.MenuItemID == "" {
+		return cleaned, "pick a drink"
+	}
 
-    if cleaned.Size == "" {
-        cleaned.Size = "regular"
-    }
-    if !slices.Contains(sizes, cleaned.Size) {
-        return cleaned, "size must be one of " + strings.Join(sizes, ", ")
-    }
+	if cleaned.Size == "" {
+		cleaned.Size = "regular"
+	}
+	if !slices.Contains(sizes, cleaned.Size) {
+		return cleaned, "size must be one of " + strings.Join(sizes, ", ")
+	}
 
-    if cleaned.Note != nil && utf8.RuneCountInString(*cleaned.Note) > 80 {
-        return cleaned, "keep the note to 80 characters"
-    }
+	if cleaned.Note != nil && utf8.RuneCountInString(*cleaned.Note) > 80 {
+		return cleaned, "keep the note to 80 characters"
+	}
 
-    extras := []string{}
-    for _, extra := range input.Extras {
-        extra = strings.ToLower(strings.TrimSpace(extra))
-        if extra != "" {
-            extras = append(extras, extra)
-        }
-    }
+	extras := []string{}
+	for _, extra := range input.Extras {
+		extra = strings.ToLower(strings.TrimSpace(extra))
+		if extra != "" {
+			extras = append(extras, extra)
+		}
+	}
 
-    slices.Sort(extras)
-    extras = slices.Compact(extras)
+	slices.Sort(extras)
+	extras = slices.Compact(extras)
 
-    if len(extras) > 5 {
-        return cleaned, "five extras at most"
-    }
+	if len(extras) > 5 {
+		return cleaned, "five extras at most"
+	}
 
-    extrasJSON, err := json.Marshal(extras)
-    if err != nil {
-        return cleaned, "those extras don't make sense"
-    }
+	extrasJSON, err := json.Marshal(extras)
+	if err != nil {
+		return cleaned, "those extras don't make sense"
+	}
 
-    cleaned.ExtrasJSON = string(extrasJSON)
+	cleaned.ExtrasJSON = string(extrasJSON)
 
-    return cleaned, ""
+	return cleaned, ""
 
 }

@@ -11,6 +11,11 @@ CREATE TABLE IF NOT EXISTS person (
 CREATE TABLE IF NOT EXISTS menu_item (
     id         TEXT PRIMARY KEY,
     name       TEXT NOT NULL,
+    section     TEXT NOT NULL DEFAULT '', -- board group, e.g. Coffee, Frappes
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    sizes       TEXT NOT NULL DEFAULT '["small","regular","large"]', -- JSON list; [] = no choice
+    allows_milk INTEGER NOT NULL DEFAULT 1,
+    flavours    TEXT NOT NULL DEFAULT '[]', -- JSON list; [] = no flavour choice
     version    INTEGER NOT NULL,
     deleted_at TEXT
 );
@@ -22,6 +27,7 @@ CREATE TABLE IF NOT EXISTS coffee_order (
     menu_item_id TEXT NOT NULL,
     size         TEXT NOT NULL DEFAULT 'regular',
     milk         TEXT,
+    flavour      TEXT,                       -- set when the drink has a flavour list
     extras       TEXT NOT NULL DEFAULT '[]', -- sorted JSON array of strings
     note         TEXT,
     status       TEXT NOT NULL DEFAULT 'placed',

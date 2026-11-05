@@ -7,6 +7,11 @@ export type SyncPerson = Person & { version: number }
 export type SyncMenuItem = {
   id: string
   name: string
+  section: string
+  sort_order: number
+  sizes: string
+  allows_milk: boolean
+  flavours: string
   version: number
   deleted_at: string | null
 }
@@ -18,6 +23,7 @@ export type SyncOrder = {
   menu_item_id: string
   size: string
   milk: string | null
+  flavour: string | null
   extras: string // JSON text, e.g. '["extra shot"]'
   note: string | null
   status: string
@@ -38,6 +44,7 @@ export type OrderInput = {
   menu_item_id: string
   size: string
   milk: string | null
+  flavour: string | null
   extras: string[]
   note: string | null
 }
