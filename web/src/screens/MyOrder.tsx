@@ -87,16 +87,11 @@ export function MyOrder({ me }: { me: Person }) {
   const orders = useQuery<SyncOrder & { label: string | null }>(
     `SELECT o.*, l.label FROM coffee_order o LEFT JOIN v_coffee_order_line l ON l.id = o.id
      WHERE o.id = ? AND o.deleted_at IS NULL`, [orderID(day, me.id)])
-  // Everything this person ordered before today, one row per different drink,
-  // newest first. Phones keep two weeks of orders, so "usual" means lately.
+  // Every different drink this person has ordered, newest first (db/views.sql).
+  // Phones keep two weeks of orders, so "usual" means lately.
   const past = useQuery<PastOrder>(
-    `SELECT l.label, o.menu_item_id, o.size, o.milk, o.flavour, o.extras, COUNT(*) AS times
-     FROM coffee_order o
-     JOIN v_coffee_order_line l ON l.id = o.id
-     JOIN menu_item m ON m.id = o.menu_item_id AND m.deleted_at IS NULL
-     WHERE o.person_id = ? AND o.day < ?
-     GROUP BY o.menu_item_id, o.size, o.milk, o.flavour, o.extras
-     ORDER BY MAX(o.day) DESC`, [me.id, day])
+    `SELECT label, menu_item_id, size, milk, flavour, extras, times
+     FROM v_past_drinks WHERE person_id = ? ORDER BY last_day DESC`, [me.id])
   const order = orders?.[0]
 
   // draft is what the person is editing; null means "show the saved order", or their usual.
