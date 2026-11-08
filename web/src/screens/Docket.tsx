@@ -5,7 +5,19 @@ import { LoyaltyCard } from '../LoyaltyCard'
 // What the café's till calls each size.
 const SIZE_NAMES: Record<string, string> = { small: 'Small', regular: 'Medium', large: 'Large' }
 
-type Cup = { id: string; drink: string; size: string; milk: string | null; extras: string; note: string | null }
+type Cup = { id: string; drink: string; size: string; sizes: string; milk: string | null; flavour: string | null; extras: string; note: string | null }
+
+// A drink with no size choice, or only one, doesn't get a size on the receipt.
+function sizeLabel(cup: Cup): string {
+  let offered: unknown
+  try {
+    offered = JSON.parse(cup.sizes)
+  } catch {
+    offered = []
+  }
+  if (!Array.isArray(offered) || offered.length <= 1) return ''
+  return ' ' + (SIZE_NAMES[cup.size] ?? titleCase(cup.size))
+}
 
 // "flat white" → "Flat White", as the head line of a receipt item.
 function titleCase(text: string): string {
@@ -34,8 +46,8 @@ function changes(cup: Cup): string[] {
 export function Docket() {
   const day = today()
   const cups = useQuery<Cup>(
-    `SELECT id, drink, size, milk, extras, note FROM v_docket WHERE day = ?
-     ORDER BY drink, CASE size WHEN 'small' THEN 1 WHEN 'regular' THEN 2 ELSE 3 END, milk, extras, note`, [day])
+    `SELECT id, drink, size, sizes, milk, flavour, extras, note FROM v_docket WHERE day = ?
+     ORDER BY drink, flavour, CASE size WHEN 'small' THEN 1 WHEN 'regular' THEN 2 ELSE 3 END, milk, extras, note`, [day])
   if (cups === null) return null // still loading
 
   const total = cups.length
@@ -48,7 +60,7 @@ export function Docket() {
           <ul className="receipt">
             {cups.map((cup) => (
               <li key={cup.id}>
-                <span className="item">{titleCase(cup.drink)} {SIZE_NAMES[cup.size] ?? titleCase(cup.size)}</span>
+                <span className="item">{titleCase(cup.flavour ? `${cup.flavour} ${cup.drink}` : cup.drink)}{sizeLabel(cup)}</span>
                 {changes(cup).map((change) => <span key={change} className="change">-&gt; {change}</span>)}
               </li>
             ))}

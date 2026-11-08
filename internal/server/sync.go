@@ -45,7 +45,7 @@ import (
 // 1. syncPerson:   ID, Name, Version
 //      e.g.  ID string `json:"id"`
 //
-// 2. syncMenuItem: ID, Name, Version, DeletedAt (*string, `json:"deleted_at"`)
+// 2. syncMenuItem: ID, Name, Section, SortOrder, Version, DeletedAt (*string, `json:"deleted_at"`)
 //
 // 3. syncOrder:    ID, Day, PersonID, MenuItemID, Size, Milk (*string),
 //                  Extras (string — the JSON text as stored, e.g. "[]"),
@@ -69,10 +69,15 @@ type syncPerson struct {
 }
 
 type syncMenuItem struct {
-	ID        string  `json:"id"`
-	Name      string  `json:"name"`
-	Version   int64   `json:"version"`
-	DeletedAt *string `json:"deleted_at"`
+	ID         string  `json:"id"`
+	Name       string  `json:"name"`
+	Section    string  `json:"section"`
+	SortOrder  int64   `json:"sort_order"`
+	Sizes      string  `json:"sizes"`
+	AllowsMilk bool    `json:"allows_milk"`
+	Flavours   string  `json:"flavours"`
+	Version    int64   `json:"version"`
+	DeletedAt  *string `json:"deleted_at"`
 }
 
 type syncOrder struct {
@@ -82,6 +87,7 @@ type syncOrder struct {
 	MenuItemID string  `json:"menu_item_id"`
 	Size       string  `json:"size"`
 	Milk       *string `json:"milk"`
+	Flavour    *string `json:"flavour"`
 	Extras     string  `json:"extras"`
 	Note       *string `json:"note"`
 	Status     string  `json:"status"`
@@ -135,7 +141,7 @@ const keepDays = 14
 //	     args: since
 //
 //	g) Fill response.MenuItems the same way:
-//	     SQL:  SELECT id, name, version, deleted_at FROM menu_item WHERE version > ?
+//	     SQL:  SELECT id, name, section, sort_order, version, deleted_at FROM menu_item WHERE version > ?
 //
 //	h) Fill response.Orders the same way, all 12 columns, in table order:
 //	     SQL:  SELECT id, day, person_id, …, deleted_at FROM coffee_order
@@ -198,14 +204,14 @@ func (s *Server) handleSync(w http.ResponseWriter, r *http.Request) {
 // queryOrders returns every order changed since the given version, from the
 // last keepDays days only.
 func queryOrders(ctx context.Context, tx *sql.Tx, since int64, oldest string) ([]syncOrder, error) {
-	query := `SELECT id, day, person_id, menu_item_id, size, milk, extras, note,
+	query := `SELECT id, day, person_id, menu_item_id, size, milk, flavour, extras, note,
 	                 status, updated_at, version, deleted_at
 	          FROM coffee_order
 	          WHERE version > ? AND day >= ?`
 	return queryAll(ctx, tx, query,
 		func(rows *sql.Rows, order *syncOrder) error {
 			return rows.Scan(&order.ID, &order.Day, &order.PersonID, &order.MenuItemID,
-				&order.Size, &order.Milk, &order.Extras, &order.Note,
+				&order.Size, &order.Milk, &order.Flavour, &order.Extras, &order.Note,
 				&order.Status, &order.UpdatedAt, &order.Version, &order.DeletedAt)
 		},
 		since, oldest)
@@ -214,10 +220,15 @@ func queryOrders(ctx context.Context, tx *sql.Tx, since int64, oldest string) ([
 // queryMenuItems returns every menu item changed since the given version,
 // including removed ones (deleted_at set), so phones learn they're gone.
 func queryMenuItems(ctx context.Context, tx *sql.Tx, since int64) ([]syncMenuItem, error) {
-	query := `SELECT id, name, version, deleted_at FROM menu_item WHERE version > ?`
+	query := `SELECT id, name, section, sort_order, sizes, allows_milk, flavours, version, deleted_at
+	          FROM menu_item WHERE version > ?`
 	return queryAll(ctx, tx, query,
 		func(rows *sql.Rows, menuItem *syncMenuItem) error {
-			return rows.Scan(&menuItem.ID, &menuItem.Name, &menuItem.Version, &menuItem.DeletedAt)
+			var allowsMilk int
+			err := rows.Scan(&menuItem.ID, &menuItem.Name, &menuItem.Section, &menuItem.SortOrder,
+				&menuItem.Sizes, &allowsMilk, &menuItem.Flavours, &menuItem.Version, &menuItem.DeletedAt)
+			menuItem.AllowsMilk = allowsMilk != 0
+			return err
 		},
 		since)
 }

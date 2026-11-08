@@ -7,6 +7,7 @@
   --red: #c0302a;
   --rule: #bdbdb6;
   --hover: #efede6;
+  --marker: #f3e3a1; /* highlighter yellow on the order line */
   --desk: #23251f; /* what's behind the ticket on a wide screen */
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   /* A spring that overshoots a touch, then settles: CSS linear() easing. */
@@ -107,13 +108,6 @@ input {
 input:focus { outline: none; border-bottom-color: var(--red); }
 input::placeholder { color: var(--rule); }
 
-.chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.chips button { background: transparent; border: 1px solid var(--ink); padding: 4px 8px; font-size: 0.8rem; }
-/* Fingers need about 44px (Apple) or 48dp (Google) to hit reliably. */
-@media (pointer: coarse) { .chips { gap: 6px; } .chips button { padding: 11px 10px; } }
-.chips button::first-letter { text-transform: uppercase; }
-.chips button.on { background: var(--ink); color: var(--paper); }
-
 .primary {
   background: var(--ink); color: var(--paper); border: 0; padding: 14px;
   text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700;
@@ -131,14 +125,50 @@ input::placeholder { color: var(--rule); }
 }
 .notice span { float: right; }
 
-/* My order */
-.current { border: 1px dashed var(--red); padding: 10px 12px; }
-.current .label { font-weight: 700; }
-.current .label::first-letter { text-transform: uppercase; }
-.current .status { color: var(--red); font-size: 0.75rem; margin-top: 2px; }
-.current.sent { border-color: var(--rule); }
-.current.sent .status { color: var(--faint); }
+/* My order: the order reads as one line, and each word you can change is
+   gone over with a highlighter. A changed word's highlight draws on left to
+   right; the word you're changing fills with ink the same way. Two layers:
+   ink on top (no width until open), highlighter under it. */
 .order-form { display: flex; flex-direction: column; gap: 14px; }
+.lab.kicker { color: var(--red); }
+.order-line { margin: 4px 0 0; font-size: 1.35rem; line-height: 1.9; font-weight: 700; }
+.mark {
+  border: 0; padding: 0 4px; margin: 0 -1px; font-weight: 700; color: var(--ink); cursor: pointer;
+  background: linear-gradient(var(--ink), var(--ink)) no-repeat 0 50% / 0% 100%,
+    linear-gradient(var(--marker), var(--marker)) no-repeat 0 55% / 100% 70%;
+  animation: marker-in 320ms cubic-bezier(.2, .9, .1, 1) both;
+}
+.mark.unset { color: var(--faint); --marker: var(--hover); }
+.mark[aria-expanded="true"] {
+  color: var(--paper);
+  background-size: 100% 100%, 100% 70%;
+  animation: ink-in 200ms cubic-bezier(.2, .9, .1, 1) both;
+}
+@keyframes marker-in { from { background-size: 0% 100%, 0% 70%; } }
+@keyframes ink-in { from { background-size: 0% 100%, 100% 70%; color: var(--ink); } 45% { color: var(--ink); } }
+@media (prefers-reduced-motion: reduce) { .mark { animation: none !important; } }
+
+.picker { border-top: 1px dashed var(--rule); padding-top: 12px; display: flex; flex-direction: column; gap: 4px; animation: picker-in 160ms ease-out; }
+@keyframes picker-in { from { opacity: 0; transform: translateY(4px); } }
+.kinds { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 8px; }
+.kinds button { background: none; border: 0; padding: 6px 0; color: var(--faint); border-bottom: 2px solid transparent;
+  text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; }
+.kinds button[aria-selected="true"] { color: var(--ink); font-weight: 700; border-bottom-color: var(--ink); }
+.words { display: flex; flex-wrap: wrap; gap: 2px 18px; margin-bottom: 8px; }
+.words button { background: none; border: 0; padding: 6px 0; font-size: 0.95rem; }
+.words button::first-letter { text-transform: uppercase; }
+.words button.on { font-weight: 700; text-decoration: underline; text-decoration-color: var(--red);
+  text-decoration-thickness: 2px; text-underline-offset: 4px; }
+/* Fingers need about 44px (Apple) or 48dp (Google) to hit reliably. */
+@media (pointer: coarse) { .words button, .kinds button { padding: 11px 0; } }
+
+.link { background: none; border: 0; padding: 0; color: var(--faint); text-decoration: underline; text-underline-offset: 3px; font-size: inherit; }
+.order-status { margin: 0; color: var(--red); font-size: 0.75rem; }
+.order-status.sent { color: var(--faint); }
+.recent { list-style: none; margin: 0; padding: 0; }
+.recent button { display: block; width: 100%; text-align: left; background: none; border: 0;
+  border-bottom: 1px dashed var(--rule); padding: 10px 0; }
+.recent button::first-letter { text-transform: uppercase; }
 .actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 
 /* Who ordered what: name, dotted leader, drink. Each row is two layers:
