@@ -129,9 +129,28 @@ input::placeholder { color: var(--rule); }
    gone over with a highlighter. A changed word's highlight draws on left to
    right; the word you're changing fills with ink the same way. Two layers:
    ink on top (no width until open), highlighter under it. */
-.order-form { display: flex; flex-direction: column; gap: 14px; }
+/* flex: 1 fills the tab, so the actions can sit at the very bottom. */
+.order-form { flex: 1; display: flex; flex-direction: column; gap: 14px; }
 .lab.kicker { color: var(--red); }
-.order-line { margin: 4px 0 0; font-size: 1.35rem; line-height: 1.9; font-weight: 700; }
+/* The order line always gets two lines of room, so the list under it
+   never jumps when a drink with no size or milk makes it one line. */
+.order-slot { position: relative; margin-top: 4px; min-height: calc(2 * 1.9 * 1.35rem); }
+.order-line { margin: 0; font-size: 1.35rem; line-height: 1.9; font-weight: 700; }
+/* A one-line order's spare line: dots tick across like a receipt printer,
+   then "basic." types itself out. bottom: 0 is the second line, because
+   the slot is exactly two lines tall whenever the order is one. */
+.basic {
+  position: absolute; left: 0; right: 0; bottom: 0; height: calc(1.9 * 1.35rem); margin: 0;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.8rem; color: var(--faint); pointer-events: none;
+}
+.basic .lead { flex: 1; height: 8px;
+  background: radial-gradient(circle, var(--faint) 1.3px, transparent 1.8px) left center / 8px 8px repeat-x;
+  animation: basic-trail 900ms linear; }
+.basic .say { white-space: nowrap; animation: basic-type 1200ms steps(6, end) 900ms backwards; }
+@keyframes basic-trail { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes basic-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@media (prefers-reduced-motion: reduce) { .basic .lead, .basic .say { animation: none; } }
 .mark {
   border: 0; padding: 0 4px; margin: 0 -1px; font-weight: 700; color: var(--ink); cursor: pointer;
   background: linear-gradient(var(--ink), var(--ink)) no-repeat 0 50% / 0% 100%,
@@ -154,11 +173,23 @@ input::placeholder { color: var(--rule); }
 .kinds button { background: none; border: 0; padding: 6px 0; color: var(--faint); border-bottom: 2px solid transparent;
   text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; }
 .kinds button[aria-selected="true"] { color: var(--ink); font-weight: 700; border-bottom-color: var(--ink); }
-.words { display: flex; flex-wrap: wrap; gap: 2px 18px; margin-bottom: 8px; }
-.words button { background: none; border: 0; padding: 6px 0; font-size: 0.95rem; }
+/* Every choice sits on a low strip of the order line's highlighter, so each
+   one reads as its own thing ("London fog latte" is one drink, not three).
+   The pick floods to a full highlight. The button is the big tap area; the
+   span inside carries the highlight, so it hugs the words. Plex Mono's bold
+   is the same width as regular, so bolding the pick never shifts the line. */
+.words { display: flex; flex-wrap: wrap; gap: 2px 8px; margin-bottom: 8px; }
+.words button { background: none; border: 0; padding: 6px 0; font-size: 0.95rem; white-space: nowrap;
+  transition: transform 260ms var(--spring); }
 .words button::first-letter { text-transform: uppercase; }
-.words button.on { font-weight: 700; text-decoration: underline; text-decoration-color: var(--red);
-  text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.words button span { display: inline-block; padding: 2px 5px;
+  background: linear-gradient(var(--marker), var(--marker)) left bottom / 100% 28% no-repeat;
+  transition: background-size 140ms ease-out; }
+.words button:active { transform: scale(0.94); transition-duration: 60ms; transition-timing-function: ease-out; }
+@media (hover: hover) { .words button:hover span { background-size: 100% 45%; } }
+.words button.on { font-weight: 700; }
+.words button.on span { background-size: 100% 100%; }
+@media (prefers-reduced-motion: reduce) { .words button, .words button span { transition: none; } .words button:active { transform: none; } }
 /* Fingers need about 44px (Apple) or 48dp (Google) to hit reliably. */
 @media (pointer: coarse) { .words button, .kinds button { padding: 11px 0; } }
 
@@ -169,7 +200,52 @@ input::placeholder { color: var(--rule); }
 .recent button { display: block; width: 100%; text-align: left; background: none; border: 0;
   border-bottom: 1px dashed var(--rule); padding: 10px 0; }
 .recent button::first-letter { text-transform: uppercase; }
-.actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+/* The order buttons stay pinned to the foot of the tab while the menu
+   scrolls under them. Sticky works because .panel is the scroller. The bar
+   reaches out to the screen edges and eats .body's bottom padding, so it
+   sits in the same place stuck or not. margin-top: auto pushes it to the
+   bottom when the page is shorter than the screen. Cancel sits beside
+   Update when there's room, so the bar stays short. */
+.actions {
+  position: sticky; bottom: 0; z-index: 2;
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin: auto calc(-1 * var(--gutter-r)) -24px calc(-1 * var(--gutter-l));
+  padding: 12px var(--gutter-r) 16px var(--gutter-l);
+  background: var(--paper); border-top: 1px dashed var(--rule);
+}
+.actions .primary { flex: 1 1 12rem; }
+.actions .ghost { flex: 0 1 auto; }
+/* Cancel steps aside while the glass pours, so the glass gets the whole bar,
+   then fades back once it drains. Coming back from display: none replays the fade. */
+.actions.pouring .ghost { display: none; }
+.actions .ghost { animation: ghost-back 220ms ease-out; }
+@keyframes ghost-back { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .actions .ghost { animation: none; } }
+
+/* The Add / Update button pours a glass of coffee (pour.ts). While it pours
+   it's an empty glass, paper with an ink rim; coffee rises from the bottom,
+   foam comes down from the top, and the letters settle where they meet. */
+.primary { position: relative; overflow: hidden; }
+.primary.pouring, .primary.pouring:disabled { background: var(--paper); box-shadow: inset 0 0 0 2px var(--ink); opacity: 1; cursor: default; }
+.primary.pouring .label { opacity: 0; }
+.pour-coffee, .pour-foam { position: absolute; left: 0; right: 0; height: 0; z-index: 1; }
+.pour-coffee { bottom: 0; background: linear-gradient(#4e3220, #3a2416); }
+.pour-coffee::before {
+  content: ""; position: absolute; left: -40px; right: -40px; top: -5px; height: 7px;
+  background: radial-gradient(ellipse at 50% 100%, #b9875a 62%, transparent 64%) 0 0 / 26px 7px repeat-x;
+  animation: pour-slosh 700ms linear infinite;
+}
+@keyframes pour-slosh { to { transform: translateX(26px); } }
+.pour-foam {
+  top: 0;
+  background: radial-gradient(circle at 20% 30%, #fff 0 3px, transparent 4px) 0 0 / 22px 18px,
+              radial-gradient(circle at 70% 70%, #fffaf0 0 2px, transparent 3px) 0 0 / 17px 15px, #f4ecdd;
+}
+.pour-float { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.pour-float span {
+  position: absolute; font-size: 1.9rem; line-height: 1; font-weight: 700; letter-spacing: 0; color: #fffaf0;
+  text-shadow: 0 0 1px #4e3220, 0 1px 0 #4e3220, 0 -1px 0 #4e3220, 1px 0 0 #4e3220, -1px 0 0 #4e3220, 0 2px 4px rgba(40, 20, 8, 0.5);
+}
 
 /* Who ordered what: name, dotted leader, drink. Each row is two layers:
    the Remove button behind, the line in front (SwipeRow.tsx). */

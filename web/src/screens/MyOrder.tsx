@@ -1,7 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { db } from '../db/client'
 import { useQuery } from '../db/useQuery'
 import { tick } from '../haptics'
+import { pour } from '../pour'
 import { orderID, today } from '../today'
 import type { Person, SyncOrder } from '../types'
 
@@ -108,6 +109,26 @@ export function MyOrder({ me }: { me: Person }) {
     return () => clearTimeout(timer)
   }, [loaded])
 
+  // Is the order line one line long? Then its spare second line says
+  // "basic." The observer fires once on start and again whenever the line
+  // changes height (a new drink, or the screen width changing).
+  const lineRef = useRef<HTMLParagraphElement>(null)
+  const submitRef = useRef<HTMLButtonElement>(null)
+  const [pouring, setPouring] = useState(false)
+  const [oneLine, setOneLine] = useState(false)
+  useEffect(() => {
+    const el = lineRef.current
+    if (!el) return
+    const observer = new ResizeObserver(() => {
+      const style = getComputedStyle(el)
+      const fontSize = parseFloat(style.fontSize)
+      const lineHeight = parseFloat(style.lineHeight) >= fontSize ? parseFloat(style.lineHeight) : fontSize * 1.9
+      setOneLine(el.getBoundingClientRect().height < lineHeight * 1.5)
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [loaded])
+
   if (menu === null || orders === null || past === null) return null // still loading
   if (menu.length === 0) {
     return <p className="body empty">No menu yet. It arrives with the first sync from the server.</p>
@@ -134,15 +155,15 @@ export function MyOrder({ me }: { me: Person }) {
     setDraft({ ...form, ...change })
   }
 
-  function choose(change: Partial<Form>, next: Part | '' = '') {
+  // A pick updates the order line and leaves the list open, so you can see
+  // what you picked and change it. Tapping the word again closes it.
+  function choose(change: Partial<Form>) {
     tick()
     update(change)
-    setOpen(next)
   }
 
   function chooseDrink(item: MenuRow) {
-    choose({ menuItemID: item.id, ...fitDrink(item, form.size, form.milk, form.flavour) },
-      offeredFlavours(item).length ? 'flavour' : '')
+    choose({ menuItemID: item.id, ...fitDrink(item, form.size, form.milk, form.flavour) })
   }
 
   function toggleExtra(extra: string) {
@@ -157,7 +178,13 @@ export function MyOrder({ me }: { me: Person }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
+    if (pouring) return
     const fitted = fitDrink(selected, form.size, form.milk, form.flavour)
+    // The glass pours while the order saves; the label underneath can change
+    // to "Update my order" mid-pour without showing.
+    setPouring(true)
+    const poured = submitRef.current ? pour(submitRef.current, order ? 'UPDATED' : 'ORDERED') : Promise.resolve()
+    void poured.finally(() => setPouring(false))
     await db.call('placeOrder', {
       day,
       menu_item_id: form.menuItemID,
@@ -209,7 +236,7 @@ export function MyOrder({ me }: { me: Person }) {
     const words = (items: [string, string][], isOn: (value: string) => boolean, pick: (value: string) => void) => (
       <div className="words">
         {items.map(([value, label]) => (
-          <button type="button" key={value} className={isOn(value) ? 'on' : ''} onClick={() => pick(value)}>{label}</button>
+          <button type="button" key={value} className={isOn(value) ? 'on' : ''} aria-pressed={isOn(value)} onClick={() => pick(value)}><span>{label}</span></button>
         ))}
       </div>
     )
@@ -250,7 +277,14 @@ export function MyOrder({ me }: { me: Person }) {
       <form onSubmit={submit} className="order-form">
         <div>
           <span className={isUsual ? 'lab kicker' : 'lab'}>{heading}</span>
-          <p className="order-line">{line()}</p>
+          <div className="order-slot">
+            <p className="order-line" ref={lineRef}>{line()}</p>
+            {oneLine && (
+              <p className="basic" key={form.menuItemID} aria-hidden="true">
+                <span className="lead" /><span className="say">basic.</span>
+              </p>
+            )}
+          </div>
           <p className="hint">
             {selected ? 'Tap a highlighted word to change it' : 'Tap the highlighted word to pick a drink'}
             {undo && <> · <button type="button" className="link" onClick={() => { setDraft(null); setOpen(null) }}>{undo}</button></>}
@@ -284,9 +318,9 @@ export function MyOrder({ me }: { me: Person }) {
             onChange={(e) => update({ note: e.target.value })} />
         </div>
 
-        <div className="actions">
-          <button className="primary" disabled={!selected || needsFlavour}>
-            {needsFlavour ? 'Pick a flavour' : order ? 'Update my order' : isUsual ? 'Same again' : 'Add my order'}
+        <div className={pouring ? 'actions pouring' : 'actions'}>
+          <button ref={submitRef} className="primary" disabled={!selected || needsFlavour || pouring}>
+            <span className="label">{needsFlavour ? 'Pick a flavour' : order ? 'Update my order' : isUsual ? 'Same again' : 'Add my order'}</span>
           </button>
           {order && (
             <button type="button" className="ghost danger" onClick={() => { setDraft(null); void db.call('cancelOrder', day) }}>
