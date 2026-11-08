@@ -14,7 +14,21 @@ export function initializeDb(db: Database): void {
   addColumnIfMissing(db, 'menu_item', 'allows_milk', `INTEGER NOT NULL DEFAULT 1`)
   addColumnIfMissing(db, 'menu_item', 'flavours', `TEXT NOT NULL DEFAULT '[]'`)
   addColumnIfMissing(db, 'coffee_order', 'flavour', `TEXT`)
+  resyncIfMenuChanged(db)
   db.exec(viewsSql)
+}
+
+// Bump when menu_item gains columns. A phone still running the old page when
+// the server updated pulled the new drinks without those columns, kept the
+// defaults (every drink under "Other", no flavours) and moved its cursor past
+// them. Starting the cursor again pulls every row in full. Runs once per bump.
+const MENU_SHAPE = '2'
+
+function resyncIfMenuChanged(db: Database) {
+  const shape = db.selectValue(`SELECT value FROM meta WHERE key = 'menu_shape'`)
+  if (shape === MENU_SHAPE) return
+  db.exec(`INSERT INTO meta (key, value) VALUES ('cursor', '0'), ('menu_shape', ?)
+           ON CONFLICT (key) DO UPDATE SET value = excluded.value`, { bind: [MENU_SHAPE] })
 }
 
 function addColumnIfMissing(db: Database, table: string, column: string, definition: string) {
