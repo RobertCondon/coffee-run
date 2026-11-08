@@ -1,3 +1,4 @@
+import { isCurrent } from '../version'
 import type { CallName, Request, Response } from './worker'
 
 const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })
@@ -43,12 +44,18 @@ export const db = {
 
 // Workers can't see whether their tab is on screen, so tell it. Hidden covers
 // switching tabs, the home screen, locking the phone and closing the tab.
-function tellWorker() {
-  const kind = document.visibilityState === 'visible' ? 'resume' : 'pause'
-  worker.postMessage({ kind } satisfies Request)
+// Coming back after a deploy, the page reloads into the new build before the
+// worker resumes, so old code never syncs against the new server.
+async function tellWorker() {
+  if (document.visibilityState !== 'visible') {
+    worker.postMessage({ kind: 'pause' } satisfies Request)
+    return
+  }
+  if (!(await isCurrent()) || document.visibilityState !== 'visible') return
+  worker.postMessage({ kind: 'resume' } satisfies Request)
 }
 document.addEventListener('visibilitychange', tellWorker)
-if (document.visibilityState !== 'visible') tellWorker() // opened in the background
+if (document.visibilityState !== 'visible') void tellWorker() // opened in the background
 
 export const isLocked = () => locked
 
@@ -71,13 +78,15 @@ export function onChange(listener: () => void): () => void {
 // online or on screen, and once a minute just in case. Returns a function
 // that stops it all.
 export function startLiveSync(): () => void {
+  // Every sync checks the build first: a newer one reloads the page instead.
+  const sync = async () => { if (await isCurrent()) void db.call('sync') }
   let events: EventSource
   let retry: ReturnType<typeof setTimeout>
   let delay = 1_000
   const connect = () => {
     events = new EventSource('/api/events')
-    events.addEventListener('changed', () => void db.call('sync'))
-    events.onopen = () => { delay = 1_000; void db.call('sync') }
+    events.addEventListener('changed', () => void sync())
+    events.onopen = () => { delay = 1_000; void sync() }
     events.onerror = () => {
       // EventSource retries a dropped connection itself, but gives up for
       // good on an error reply (a proxy's 502 while Go restarts).
@@ -98,7 +107,7 @@ export function startLiveSync(): () => void {
   }
   window.addEventListener('online', reconnect)
   document.addEventListener('visibilitychange', reconnect)
-  const timer = setInterval(() => void db.call('sync'), 60_000)
+  const timer = setInterval(() => void sync(), 60_000)
 
   return () => {
     events.close()
