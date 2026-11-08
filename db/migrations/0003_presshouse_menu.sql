@@ -116,11 +116,6 @@ WITH drinks (id, name, section, sort_order, sizes, allows_milk, flavours) AS (VA
     ('iced-tea-feijoa',   'Feijoa & lime iced tea',       'Iced tea',    920,
         '["regular","large"]', 0, '[]'),
     ('iced-tea-chai',     'Chai iced tea',                'Iced tea',    930,
-        '["regular","large"]', 0, '[]'),
-
-    ('fizzy-passion-fruit','Passion fruit fizzy',         'Fizzy',      1010,
-        '["regular","large"]', 0, '[]'),
-    ('fizzy-strawberry',  'Strawberry fizzy',             'Fizzy',      1020,
         '["regular","large"]', 0, '[]')
 )
 INSERT INTO menu_item (id, name, section, sort_order, sizes, allows_milk, flavours, version)
