@@ -15,6 +15,9 @@ type Server struct {
 	loc *time.Location
 	now func() time.Time
 	mux *http.ServeMux
+
+	qrURL    string       // set by UseQR
+	qrClient *http.Client // adds the Auth0 bearer token
 }
 
 func New(db *sql.DB, loc *time.Location, static fs.FS) *Server {
@@ -25,6 +28,7 @@ func New(db *sql.DB, loc *time.Location, static fs.FS) *Server {
 	s.mux.HandleFunc("GET /api/sync", s.handleSync)
 	s.mux.HandleFunc("POST /api/upload", s.handleUpload)
 	s.mux.HandleFunc("GET /api/events", s.handleEvents)
+	s.mux.HandleFunc("GET /api/loyalty", s.handleLoyalty)
 	s.mux.Handle("GET /", cacheRules(http.FileServerFS(static)))
 	return s
 }

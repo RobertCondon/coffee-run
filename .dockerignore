@@ -5,3 +5,4 @@ web/dist
 *.db*
 *.html
 !web/index.html
+.env*

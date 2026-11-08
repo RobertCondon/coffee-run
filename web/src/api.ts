@@ -24,3 +24,13 @@ export async function whoAmI(): Promise<Person | null | undefined> {
     return undefined
   }
 }
+
+export type LoyaltyCard = { token: string; code: string }
+
+// A fresh loyalty card from our server, which asks the QR service for it
+// with the Auth0 token (the phone never holds that token).
+export async function loyaltyCard(): Promise<LoyaltyCard> {
+  const response = await fetch('/api/loyalty', { cache: 'no-store' })
+  if (!response.ok) throw new Error((await response.text()).trim() || 'could not load the loyalty card')
+  return response.json()
+}

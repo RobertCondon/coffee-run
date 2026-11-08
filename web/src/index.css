@@ -243,6 +243,12 @@ input::placeholder { color: var(--rule); }
 .loyalty-code { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.32em; margin-right: -0.32em; }
 .loyalty-hint { color: var(--faint); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.65rem; }
 .loyalty:active .loyalty-qr { transform: scale(0.98); }
+div.loyalty { cursor: default; }
+.loyalty-qr-empty { border: 1px dashed var(--rule); }
+.loyalty-retry {
+  font: inherit; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em;
+  color: inherit; background: transparent; border: 1px solid currentColor; padding: 6px 12px; cursor: pointer;
+}
 
 .loyalty-full {
   position: fixed; inset: 0; z-index: 100;

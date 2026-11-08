@@ -2,3 +2,5 @@
 *.db*
 web/node_modules/
 jar
+.env*
+!.env.example
