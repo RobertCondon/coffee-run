@@ -56,7 +56,7 @@ func (s *Server) today() string {
 	return s.now().In(s.loc).Format(time.DateOnly)
 }
 
-// ---- C: every write goes through here ----
+// ---- every write goes through here ----
 
 // write runs fn in a transaction with the next sync version, then pings
 // every phone once it has committed.

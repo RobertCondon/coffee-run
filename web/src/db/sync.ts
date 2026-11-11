@@ -96,8 +96,8 @@ export function placeOrder(db: Database, order: OrderInput) {
 
 // A tombstone, like the server's: the row stays, marked deleted, version 0.
 // Anyone's order, yours by default. The op carries the version this phone
-// saw, so the server can refuse if its owner changed it since (Rails'
-// lock_version). 0, never confirmed, skips that check.
+// saw, so the server can refuse if its owner changed it since (an optimistic
+// lock). 0, never confirmed, skips that check.
 export function cancelOrder(db: Database, day: string, personID = me(db).id) {
   const id = orderID(day, personID)
   const now = new Date().toISOString()

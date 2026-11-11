@@ -45,11 +45,6 @@ func hashToken(token string) string {
 }
 
 // handleMe answers "who is this device signed in as?"
-//
-// YOUR TURN: replace the line below. Three steps:
-//  1. p, err := s.currentPerson(r)
-//  2. if err != nil, send a 401:  http.Error(w, "not signed in", http.StatusUnauthorized)  then return
-//  3. otherwise send the person:   writeJSON(w, http.StatusOK, p)
 func (s *Server) handleMe(responseWriter http.ResponseWriter, request *http.Request) {
 	person, err := s.currentPerson(request)
 	if err != nil {

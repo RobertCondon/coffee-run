@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 )
 
+// cleanName trims a name and keeps it to 1–40 characters.
 func cleanName(raw string) (string, error) {
 	name := strings.TrimSpace(raw)
 	if name == "" || utf8.RuneCountInString(name) > 40 {
@@ -16,14 +17,10 @@ func cleanName(raw string) (string, error) {
 	return name, nil
 }
 
-// =============================================================================
-// STEP 8 · PROBLEM 1: validateOrder
-// =============================================================================
-
-// DONE FOR YOU: the sizes the coffee_order table allows (see its CHECK).
+// sizes are the ones the coffee_order table allows (see its CHECK).
 var sizes = []string{"small", "regular", "large"}
 
-// DONE FOR YOU: an order after validateOrder has checked and tidied it.
+// cleanOrder is an order after validateOrder has checked and tidied it.
 // apply saves these values, never the raw OrderInput.
 type cleanOrder struct {
 	MenuItemID string
@@ -55,53 +52,9 @@ func trimOrNil(text *string) *string {
 	return &trimmed
 }
 
-// -----------------------------------------------------------------------------
-// YOUR TURN: validateOrder checks an order and tidies it up.
-//
-// Returns (cleaned order, "") when it's fine, or (whatever, "a reason") when
-// it isn't. The reason is shown to the person, so write it for them.
-//
-// Steps:
-//
-//	a) Start the result from the input:
-//	     cleaned := cleanOrder{
-//	         MenuItemID: input.MenuItemID,
-//	         Size:       input.Size,
-//	         Milk:       trimOrNil(input.Milk),
-//	         Note:       trimOrNil(input.Note),
-//	     }
-//
-//	b) No drink?                  → return cleaned, "pick a drink"
-//
-//	c) Size is "" → set it to "regular".
-//	   Not in sizes? (slices.Contains(sizes, cleaned.Size))
-//	                              → return cleaned, "size must be one of " + strings.Join(sizes, ", ")
-//
-//	d) Note longer than 80 characters? (count with utf8.RuneCountInString,
-//	   like cleanName; remember Note is a *string, so check != nil and use *cleaned.Note)
-//	                              → return cleaned, "keep the note to 80 characters"
-//
-//	e) Extras: build a new list. For each one in input.Extras, lowercase and
-//	   trim it (strings.ToLower, strings.TrimSpace), and skip it if it's "".
-//	   Start with extras := []string{} so an empty list becomes [] not null.
-//
-//	f) slices.Sort(extras), then extras = slices.Compact(extras)
-//	   Compact removes neighbours that are the same, which after sorting is
-//	   every duplicate. Sorting also means "vanilla + shot" and "shot + vanilla"
-//	   become the same label, so they tally on the same docket line.
-//
-//	g) More than 5?               → return cleaned, "five extras at most"
-//
-//	h) Turn the list into JSON text for the column:
-//	     extrasJSON, err := json.Marshal(extras)     // gives []byte
-//	   if err != nil → return cleaned, "those extras don't make sense"
-//	   cleaned.ExtrasJSON = string(extrasJSON)
-//
-//	i) return cleaned, ""
-//
-// Imports to add at the top: "encoding/json" and "slices".
-// -----------------------------------------------------------------------------
-
+// validateOrder checks an order and tidies it up. It returns a reason for the
+// person when the order isn't valid. Extras are lowercased, sorted and
+// de-duplicated, so the same drink tallies on one docket line.
 func validateOrder(input OrderInput) (cleanOrder, string) {
 	cleaned := cleanOrder{
 		MenuItemID: input.MenuItemID,
@@ -149,5 +102,4 @@ func validateOrder(input OrderInput) (cleanOrder, string) {
 	cleaned.ExtrasJSON = string(extrasJSON)
 
 	return cleaned, ""
-
 }
