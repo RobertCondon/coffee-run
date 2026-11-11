@@ -4,7 +4,7 @@ import { db, isLocked, onChange, retryOpen, startLiveSync } from './db/client'
 import { useQuery } from './db/useQuery'
 import type { Person } from './types'
 import { SignIn } from './screens/SignIn'
-import { MyOrder } from './screens/MyOrder'
+import { MyOrder, MyOrderTab } from './screens/MyOrder'
 import { Docket } from './screens/Docket'
 import { Who } from './screens/Who'
 import { Tabs } from './Tabs'
@@ -54,7 +54,7 @@ export default function App() {
       </header>
       <Notice />
       <Tabs tabs={[
-        { name: 'My order', panel: <MyOrder me={me} /> },
+        { name: 'My order', label: <MyOrderTab me={me} />, panel: <MyOrder me={me} /> },
         { name: 'Who', panel: <Who me={me} /> },
         { name: 'Docket', panel: <Docket /> },
       ]} />

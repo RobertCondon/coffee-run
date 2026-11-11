@@ -80,6 +80,13 @@ function sameDrink(a: Form, b: Form) {
     && [...a.extras].sort().join() === [...b.extras].sort().join()
 }
 
+// The My order tab's name, with a tick once today's order has reached the server.
+export function MyOrderTab({ me }: { me: Person }) {
+  const rows = useQuery<{ version: number }>(
+    `SELECT version FROM coffee_order WHERE id = ? AND deleted_at IS NULL`, [orderID(today(), me.id)])
+  return <>My order{rows?.[0] && rows[0].version > 0 ? <span className="tab-tick" aria-label=", ordered"> ✓</span> : null}</>
+}
+
 export function MyOrder({ me }: { me: Person }) {
   const day = today()
   const menu = useQuery<MenuRow>(
@@ -115,6 +122,7 @@ export function MyOrder({ me }: { me: Person }) {
   const lineRef = useRef<HTMLParagraphElement>(null)
   const submitRef = useRef<HTMLButtonElement>(null)
   const [pouring, setPouring] = useState(false)
+  const [recentOpen, setRecentOpen] = useState(false)
   const [oneLine, setOneLine] = useState(false)
   useEffect(() => {
     const el = lineRef.current
@@ -268,15 +276,37 @@ export function MyOrder({ me }: { me: Person }) {
     return null
   }
 
-  const heading = order && !draft ? 'Your order today' : isUsual ? 'Your usual' : 'Your order'
-  const undo = draft && (order ? 'undo changes' : usual ? 'back to your usual' : null)
+  // The band above is the order; the sentence is only the editor. changed
+  // means they differ: the person has edited but not pressed Update.
+  const changed = !!saved && !!draft && (!sameDrink(draft, saved) || draft.note.trim() !== saved.note.trim())
+  const heading = changed ? 'Your change · not ordered' : order ? 'Change your order' : isUsual ? 'Suggestion · your usual' : 'Your order'
+  const undo = draft && !order && usual ? 'back to your usual' : null
+  const orderedAs = order ? order.label ?? selected?.name ?? '' : ''
   const others = recent.filter((row) => !sameDrink(formFrom(row), form))
 
   return (
+    <>
+    <div className="band-wrap" role="status">
+      {!order ? (
+        <div className="band no">Not ordered yet</div>
+      ) : (
+        <div className={order.version === 0 ? 'band wait' : 'band yes'}>
+          {order.version === 0 ? 'Ordered · not sent yet' : '✓ Ordered'}
+          <span className="drink">{orderedAs}</span>
+          {order.note && <span className="extra">Note: {order.note}</span>}
+        </div>
+      )}
+      {changed && (
+        <div className="band-strip">
+          <b>Changed below, not updated</b>
+          <button type="button" className="link" onClick={() => { setDraft(null); setOpen(null) }}>Undo</button>
+        </div>
+      )}
+    </div>
     <section className="body">
       <form onSubmit={submit} className="order-form">
         <div>
-          <span className={isUsual ? 'lab kicker' : 'lab'}>{heading}</span>
+          <span className={isUsual || changed ? 'lab kicker' : 'lab'}>{heading}</span>
           <div className="order-slot">
             <p className="order-line" ref={lineRef}>{line()}</p>
             {oneLine && (
@@ -293,22 +323,22 @@ export function MyOrder({ me }: { me: Person }) {
 
         {openPart && <div className="picker" key={openPart}>{choices()}</div>}
 
-        {order && !draft && (
-          <p className={order.version === 0 ? 'order-status' : 'order-status sent'}>
-            {order.version === 0 ? 'Saved on this phone, sending…' : 'Sent ✓'}
-          </p>
-        )}
-
+        {/* Folded away by default, so the only drink on screen is the order. */}
         {!openPart && others.length > 0 && (
           <div>
-            <span className="lab">Or one of your recent</span>
-            <ul className="recent">
-              {others.map((row) => (
-                <li key={row.label}>
-                  <button type="button" onClick={() => { tick(); setDraft(formFrom(row, form.note)); setOpen('') }}>{row.label}</button>
-                </li>
-              ))}
-            </ul>
+            <button type="button" className="recent-fold" aria-expanded={recentOpen}
+              onClick={() => { tick(); setRecentOpen(!recentOpen) }}>
+              <span>Recent drinks ({others.length})</span><span aria-hidden="true">{recentOpen ? '▴' : '▾'}</span>
+            </button>
+            {recentOpen && (
+              <ul className="recent">
+                {others.map((row) => (
+                  <li key={row.label}>
+                    <button type="button" onClick={() => { tick(); setDraft(formFrom(row, form.note)); setOpen(''); setRecentOpen(false) }}>{row.label}</button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
@@ -330,5 +360,6 @@ export function MyOrder({ me }: { me: Person }) {
         </div>
       </form>
     </section>
+    </>
   )
 }

@@ -6,7 +6,8 @@ import { tick } from './haptics'
 // dragging, momentum and settling, so it feels like the rest of the phone.
 // The tab buttons scroll the strip too; the strip's position says which tab
 // is current.
-export function Tabs({ tabs }: { tabs: { name: string; panel: ReactNode }[] }) {
+// label, when given, is shown in place of the name (it can carry a mark).
+export function Tabs({ tabs }: { tabs: { name: string; label?: ReactNode; panel: ReactNode }[] }) {
   const strip = useRef<HTMLDivElement>(null)
   const underline = useRef<HTMLSpanElement>(null)
   const [current, setCurrent] = useState(0)
@@ -56,9 +57,9 @@ export function Tabs({ tabs }: { tabs: { name: string; panel: ReactNode }[] }) {
   return (
     <>
       <nav role="tablist">
-        {tabs.map(({ name }, i) => (
+        {tabs.map(({ name, label }, i) => (
           <button key={name} role="tab" id={`tab-${i}`} aria-controls={`panel-${i}`}
-            aria-selected={current === i} onClick={() => show(i)}>{name}</button>
+            aria-selected={current === i} onClick={() => show(i)}>{label ?? name}</button>
         ))}
         <span className="underline" ref={underline} style={{ width: `${100 / tabs.length}%` }} />
       </nav>

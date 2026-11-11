@@ -194,8 +194,33 @@ input::placeholder { color: var(--rule); }
 @media (pointer: coarse) { .words button, .kinds button { padding: 11px 0; } }
 
 .link { background: none; border: 0; padding: 0; color: var(--faint); text-decoration: underline; text-underline-offset: 3px; font-size: inherit; }
-.order-status { margin: 0; color: var(--red); font-size: 0.75rem; }
-.order-status.sent { color: var(--faint); }
+/* The band under the tabs is the order: "Not ordered yet", or the drink
+   that's really ordered. It stays put while the sentence below is edited,
+   and sticks to the top so it's in view while the menu scrolls. */
+.band-wrap { position: sticky; top: 0; z-index: 2; background: var(--paper); }
+.band {
+  padding: 9px var(--gutter-r) 9px var(--gutter-l);
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+}
+.band .drink { display: block; margin-top: 4px; font-size: 0.95rem; letter-spacing: 0; text-transform: none; }
+.band .drink::first-letter { text-transform: uppercase; }
+.band .extra { display: block; margin-top: 2px; font-size: 0.75rem; font-weight: 400; letter-spacing: 0; text-transform: none; opacity: 0.85; }
+.band.no { color: var(--red); font-weight: 400; border-bottom: 1px dashed var(--red); }
+.band.wait { border-bottom: 2px dashed var(--ink); }
+.band.yes { background: var(--ink); color: var(--paper); }
+/* Edited but not updated: one line of highlighter under the band. */
+.band-strip {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding: 6px var(--gutter-r) 6px var(--gutter-l); background: var(--marker); font-size: 0.75rem;
+}
+.band-strip .link { color: var(--ink); }
+.tab-tick { color: #2f6b3a; }
+.recent-fold {
+  display: flex; justify-content: space-between; width: 100%; background: none; border: 0;
+  border-bottom: 1px dashed var(--rule); padding: 0 0 8px;
+  text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.68rem; color: var(--faint);
+}
+@media (pointer: coarse) { .recent-fold { padding: 8px 0 12px; } }
 .recent { list-style: none; margin: 0; padding: 0; }
 .recent button { display: block; width: 100%; text-align: left; background: none; border: 0;
   border-bottom: 1px dashed var(--rule); padding: 10px 0; }
