@@ -1,6 +1,6 @@
 # Coffee Run
 
-The app our office uses to sort out the daily coffee run. Everyone puts their order in on their phone, and whoever is walking to the café gets one docket with the lot tallied up, plus the loyalty card QR to scan at the till.
+The app my team uses to sort out the daily coffee run. Everyone puts their order in on their phone, and whoever is walking to the café gets one docket with the lot tallied up, plus the loyalty card QR to scan at the till.
 
 I'm a Rails dev and had never written Go, so this was my excuse to learn it.
 
@@ -33,4 +33,4 @@ The loyalty card needs a few settings. Copy `.env.example` to `.env.local` and f
 - `db` is the migrations and the SQL both ends share
 - `web` is the phone app
 
-Pushing to master deploys it to a small box in the office through a self-hosted GitHub runner.
+Pushing to master deploys it to a small server at my house through a self-hosted GitHub runner.
